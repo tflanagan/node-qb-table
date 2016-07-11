@@ -5,7 +5,7 @@ var QBTable = (function(){
 	/* Versioning */
 	var VERSION_MAJOR = 0;
 	var VERSION_MINOR = 0;
-	var VERSION_PATCH = 1;
+	var VERSION_PATCH = 2;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -215,7 +215,17 @@ var QBTable = (function(){
 
 	QBTable.prototype.getRecord = function(value, fieldName, returnIndex){
 		var records = this.getRecords(),
-			i = indexOfObj(records, fieldName || 'recordid', value);
+			i = -1;
+
+		records.some(function(record, o){
+			if(record.get(fieldName) !== value){
+				return false;
+			}
+
+			i = o;
+
+			return true;
+		});
 
 		if(returnIndex){
 			return i;
@@ -320,11 +330,19 @@ var QBTable = (function(){
 	QBTable.prototype.setDBID = function(dbid){
 		this._dbid = dbid;
 
+		this.getRecords().forEach(function(record){
+			record.setDBID(dbid);
+		});
+
 		return this;
 	};
 
 	QBTable.prototype.setFid = function(name, id){
 		this._fids[name] = +id;
+
+		this.getRecords().forEach(function(record){
+			record.setFid(name, id);
+		});
 
 		return this;
 	};
