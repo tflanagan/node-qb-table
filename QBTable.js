@@ -4,8 +4,8 @@ var QBTable = (function(){
 
 	/* Versioning */
 	var VERSION_MAJOR = 0;
-	var VERSION_MINOR = 0;
-	var VERSION_PATCH = 3;
+	var VERSION_MINOR = 1;
+	var VERSION_PATCH = 0;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -106,24 +106,37 @@ var QBTable = (function(){
 		return this;
 	};
 
-	QBTable.prototype.deleteRecord = function(value, fieldName){
+	QBTable.prototype.deleteRecord = function(record){
 		var that = this,
-			records = this.getRecords(),
-			i = indexOfObj(records, fieldName || 'recordid', value);
+			i = -1;
+
+		this.getRecords().some(function(r, o){
+			if(record._id === r._id){
+				i = o;
+
+				return true;
+			}
+
+			return false;
+		});
 
 		if(i === -1){
 			return this;
 		}
 
-		var record = that._data.records.splice(i, 1);
+		var record = this._data.records.splice(i, 1)[0];
 
-		return record.delete().then(function(results){
-			return that;
-		}).catch(function(err){
-			that._data.records.push(record);
+		if(record.get('recordid')){
+			return record.delete().then(function(results){
+				return that;
+			}).catch(function(err){
+				that._data.records.push(record);
 
-			throw err;
-		});
+				throw err;
+			});
+		}
+
+		return this;
 	};
 
 	QBTable.prototype.deleteRecords = function(individually){
@@ -131,7 +144,7 @@ var QBTable = (function(){
 
 		if(individually){
 			return QuickBase.Promise.map(this.getRecords(), function(record){
-				return that.deleteRecord(record.get('recordid'));
+				return that.deleteRecord(record);
 			});
 		}
 
@@ -259,12 +272,18 @@ var QBTable = (function(){
 			that._data = results.table;
 
 			that._data.records = that._data.records.map(function(record){
-				return new QBRecord({
+				var newRecord = new QBRecord({
 					quickbase: that._qb,
 					dbid: dbid,
 					fids: fids,
 					recordid: record.rid
 				});
+
+				Object.keys(fids).forEach(function(fid){
+					newRecord.set(fid, record[fids[fid]]);
+				});
+
+				return newRecord;
 			});
 
 			return that;
@@ -320,7 +339,7 @@ var QBTable = (function(){
 			}, []).join('\n')
 		}).then(function(results){
 			records.forEach(function(record, i){
-				record.set('recordid', results.rids[i]);
+				record.set('recordid', results.rids[i].rid);
 			});
 
 			return that;
@@ -411,11 +430,11 @@ var QBTable = (function(){
 
 		if(autoSave === true){
 			return record.save().then(function(){
-				return that;
+				return record;
 			});
 		}
 
-		return this;
+		return record;
 	};
 
 	/* Helpers */
@@ -463,6 +482,10 @@ var QBTable = (function(){
 	var val2csv = function(val){
 		if(!val){
 			return val;
+		}
+
+		if(typeof(val) === 'boolean'){
+			val = val ? 1 : 0;
 		}
 
 		if(typeof(val) !== 'number' && (isNaN(val) || !isFinite(val) || val.match(/e/))){
