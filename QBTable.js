@@ -136,7 +136,7 @@ var QBTable = (function(){
 			});
 		}
 
-		return this;
+		return QuickBase.Promise.resolve();
 	};
 
 	QBTable.prototype.deleteRecords = function(individually){
