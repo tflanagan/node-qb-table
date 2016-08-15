@@ -5,7 +5,7 @@ var QBTable = (function(){
 	/* Versioning */
 	var VERSION_MAJOR = 0;
 	var VERSION_MINOR = 1;
-	var VERSION_PATCH = 0;
+	var VERSION_PATCH = 1;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -283,6 +283,8 @@ var QBTable = (function(){
 					newRecord.set(fid, record[fids[fid]]);
 				});
 
+				newRecord._fields = that._data.fields;
+
 				return newRecord;
 			});
 
@@ -401,6 +403,8 @@ var QBTable = (function(){
 				Object.keys(options).forEach(function(name){
 					record.set(name, options[name]);
 				});
+
+				record._fields = that._data._fields;
 			};
 
 		if(!options){
