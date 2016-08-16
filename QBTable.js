@@ -313,12 +313,14 @@ var QBTable = (function(){
 			var id = fids[name],
 				field = that.getField(id);
 
-			if(id <= 5 || [
-				'summary',
-				'virtual',
-				'lookup'
-			].indexOf(field.mode) !== -1){
-				return;
+			if(field){
+				if(id <= 5 || [
+					'summary',
+					'virtual',
+					'lookup'
+				].indexOf(field.mode) !== -1){
+					return;
+				}
 			}
 
 			clist.push(id);
@@ -438,7 +440,7 @@ var QBTable = (function(){
 			});
 		}
 
-		return record;
+		return QuickBase.Promise.resolve(record);
 	};
 
 	/* Helpers */
