@@ -5,7 +5,7 @@ var QBTable = (function(){
 	/* Versioning */
 	var VERSION_MAJOR = 0;
 	var VERSION_MINOR = 1;
-	var VERSION_PATCH = 1;
+	var VERSION_PATCH = 2;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -306,41 +306,44 @@ var QBTable = (function(){
 		var fids = this.getFids(),
 			names = Object.keys(fids),
 			records = this.getRecords(),
-			clist = [fids.recordid],
-			csv = [];
+			clist = [fids.recordid];
 
 		names.forEach(function(name){
 			var id = fids[name],
 				field = that.getField(id);
 
-			if(field){
-				if(id <= 5 || [
-					'summary',
-					'virtual',
-					'lookup'
-				].indexOf(field.mode) !== -1){
-					return;
-				}
+			if(id <= 5 || (field && [
+				'summary',
+				'virtual',
+				'lookup'
+			].indexOf(field.mode) !== -1)){
+				return;
 			}
 
 			clist.push(id);
 		});
 
+		var csv = records.reduce(function(csv, record){
+			return csv.concat(clist.reduce(function(row, fid){
+				var name = that.getFid(fid, true),
+					value = record.get(name);
+
+				if(value === null){
+					value = '';
+				}
+
+				return row.concat(val2csv(value));
+			}, []).join(','));
+		}, []).join('\n');
+
+		if(csv.length === 0){
+			return QuickBase.Promise.resolve();
+		}
+
 		return this._qb.api('API_ImportFromCSV', {
 			dbid: this.getDBID(),
 			clist: clist,
-			records_csv: records.reduce(function(csv, record){
-				return csv.concat(clist.reduce(function(row, fid){
-					var name = that.getFid(fid, true),
-						value = record.get(name);
-
-					if(value === null){
-						value = '';
-					}
-
-					return row.concat(val2csv(value));
-				}, []).join(','));
-			}, []).join('\n')
+			records_csv: csv
 		}).then(function(results){
 			records.forEach(function(record, i){
 				record.set('recordid', results.rids[i].rid);
