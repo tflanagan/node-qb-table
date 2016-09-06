@@ -227,7 +227,7 @@ var QBTable = (function(){
 	};
 
 	QBTable.prototype.getTableName = function(){
-		return this._data.table.name;
+		return this._data.name;
 	};
 
 	QBTable.prototype.getRecord = function(value, fieldName, returnIndex){
