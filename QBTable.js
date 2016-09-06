@@ -4,8 +4,8 @@ var QBTable = (function(){
 
 	/* Versioning */
 	var VERSION_MAJOR = 0;
-	var VERSION_MINOR = 1;
-	var VERSION_PATCH = 2;
+	var VERSION_MINOR = 2;
+	var VERSION_PATCH = 0;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -224,6 +224,10 @@ var QBTable = (function(){
 
 	QBTable.prototype.getSList = function(slist){
 		return this._slist;
+	};
+
+	QBTable.prototype.getTableName = function(){
+		return this._data.table.name;
 	};
 
 	QBTable.prototype.getRecord = function(value, fieldName, returnIndex){
