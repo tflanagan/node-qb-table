@@ -4,8 +4,8 @@ var QBTable = (function(){
 
 	/* Versioning */
 	var VERSION_MAJOR = 0;
-	var VERSION_MINOR = 3;
-	var VERSION_PATCH = 2;
+	var VERSION_MINOR = 4;
+	var VERSION_PATCH = 0;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -471,6 +471,21 @@ var QBTable = (function(){
 		}
 
 		return QuickBase.Promise.resolve(record);
+	};
+
+	/* Static Methods */
+	QBTable.NewRecord = function(table, options){
+		var record = new QBRecord({
+			quickbase: table._qb,
+			dbid: table.getDBID(),
+			fids: table.getFids()
+		});
+
+		Object.keys(options).forEach(function(name){
+			record.set(name, options[name]);
+		});
+
+		return record;
 	};
 
 	/* Helpers */
