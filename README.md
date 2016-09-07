@@ -50,3 +50,7 @@ var table = new QBTable({
 #### `.setQuery(query)`
 #### `.setSList(slist)`
 #### `.upsertRecord(options, autoSave)`
+
+### Static Methods
+-------
+#### `QBTable.NewRecord(table, options)`
