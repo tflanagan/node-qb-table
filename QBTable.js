@@ -5,7 +5,7 @@ var QBTable = (function(){
 	/* Versioning */
 	var VERSION_MAJOR = 0;
 	var VERSION_MINOR = 3;
-	var VERSION_PATCH = 0;
+	var VERSION_PATCH = 1;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -423,38 +423,44 @@ var QBTable = (function(){
 
 	QBTable.prototype.upsertRecord = function(options, autoSave){
 		var that = this,
-			record = undefined,
-			_upsertRecord = function(){
-				Object.keys(options).forEach(function(name){
-					record.set(name, options[name]);
-				});
-
-				record._fields = that._data._fields;
-			};
+			record = undefined;
 
 		if(!options){
 			options = {};
 		}
 
-		if(options.recordid){
-			record = this.getRecord(options.recordid, 'recordid');
-		}else
-		if(options.primaryKey){
-			record = this.getRecord(options.primaryKey, 'primaryKey');
-		}
-
-		if(record){
-			_upsertRecord();
+		if(options instanceof QBRecord){
+			this._data.records.push(options);
 		}else{
-			record = new QBRecord({
-				quickbase: this._qb,
-				dbid: this.getDBID(),
-				fids: this.getFids()
-			});
+			var record = undefined,
+				_upsertRecord = function(){
+					Object.keys(options).forEach(function(name){
+						record.set(name, options[name]);
+					});
 
-			_upsertRecord();
+					record._fields = that._data._fields;
+				};
 
-			this._data.records.push(record);
+			if(options.recordid){
+				record = this.getRecord(options.recordid, 'recordid');
+			}else
+			if(options.primaryKey){
+				record = this.getRecord(options.primaryKey, 'primaryKey');
+			}
+
+			if(record){
+				_upsertRecord();
+			}else{
+				record = new QBRecord({
+					quickbase: this._qb,
+					dbid: this.getDBID(),
+					fids: this.getFids()
+				});
+
+				_upsertRecord();
+
+				this._data.records.push(record);
+			}
 		}
 
 		if(autoSave === true){
