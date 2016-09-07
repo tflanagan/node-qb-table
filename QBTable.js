@@ -4,7 +4,7 @@ var QBTable = (function(){
 
 	/* Versioning */
 	var VERSION_MAJOR = 0;
-	var VERSION_MINOR = 2;
+	var VERSION_MINOR = 3;
 	var VERSION_PATCH = 0;
 
 	/* Dependencies */
@@ -291,6 +291,22 @@ var QBTable = (function(){
 
 				return newRecord;
 			});
+
+			return that;
+		});
+	};
+
+	QBTable.prototype.loadSchema = function(){
+		var that = this;
+
+		return this._qb.api('API_GetSchema', {
+			dbid: this.getDBID()
+		}).then(function(results){
+			var records = that._data;
+
+			that._data = results.table;
+
+			that._data.records = records;
 
 			return that;
 		});
