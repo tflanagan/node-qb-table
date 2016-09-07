@@ -5,7 +5,7 @@ var QBTable = (function(){
 	/* Versioning */
 	var VERSION_MAJOR = 0;
 	var VERSION_MINOR = 3;
-	var VERSION_PATCH = 1;
+	var VERSION_PATCH = 2;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -430,16 +430,17 @@ var QBTable = (function(){
 		}
 
 		if(options instanceof QBRecord){
-			this._data.records.push(options);
-		}else{
-			var record = undefined,
-				_upsertRecord = function(){
-					Object.keys(options).forEach(function(name){
-						record.set(name, options[name]);
-					});
+			record = options;
 
-					record._fields = that._data._fields;
-				};
+			this._data.records.push(record);
+		}else{
+			var _upsertRecord = function(){
+				Object.keys(options).forEach(function(name){
+					record.set(name, options[name]);
+				});
+
+				record._fields = that._data._fields;
+			};
 
 			if(options.recordid){
 				record = this.getRecord(options.recordid, 'recordid');
