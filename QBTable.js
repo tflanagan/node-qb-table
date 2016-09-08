@@ -4,8 +4,8 @@ var QBTable = (function(){
 
 	/* Versioning */
 	var VERSION_MAJOR = 0;
-	var VERSION_MINOR = 4;
-	var VERSION_PATCH = 1;
+	var VERSION_MINOR = 5;
+	var VERSION_PATCH = 0;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -379,6 +379,12 @@ var QBTable = (function(){
 		this.getRecords().forEach(function(record){
 			record.setDBID(dbid);
 		});
+
+		return this;
+	};
+
+	QBTable.prototype.setQuery = function(query){
+		this._query = query;
 
 		return this;
 	};
