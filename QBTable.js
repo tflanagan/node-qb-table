@@ -5,7 +5,7 @@ var QBTable = (function(){
 	/* Versioning */
 	var VERSION_MAJOR = 0;
 	var VERSION_MINOR = 4;
-	var VERSION_PATCH = 0;
+	var VERSION_PATCH = 1;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -302,7 +302,7 @@ var QBTable = (function(){
 		return this._qb.api('API_GetSchema', {
 			dbid: this.getDBID()
 		}).then(function(results){
-			var records = that._data;
+			var records = that._data.records;
 
 			that._data = results.table;
 
