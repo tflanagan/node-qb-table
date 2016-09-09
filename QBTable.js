@@ -5,7 +5,7 @@ var QBTable = (function(){
 	/* Versioning */
 	var VERSION_MAJOR = 0;
 	var VERSION_MINOR = 4;
-	var VERSION_PATCH = 2;
+	var VERSION_PATCH = 5;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -121,7 +121,7 @@ var QBTable = (function(){
 		});
 
 		if(i === -1){
-			return this;
+			return QuickBase.Promise.resolve();
 		}
 
 		var record = this._data.records.splice(i, 1)[0];
