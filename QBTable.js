@@ -5,7 +5,7 @@ var QBTable = (function(){
 	/* Versioning */
 	var VERSION_MAJOR = 0;
 	var VERSION_MINOR = 4;
-	var VERSION_PATCH = 1;
+	var VERSION_PATCH = 2;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -365,8 +365,18 @@ var QBTable = (function(){
 			clist: clist,
 			records_csv: csv
 		}).then(function(results){
+			var now = Date.now();
+
 			records.forEach(function(record, i){
+				if(fids.dateCreated && !record.get('recordid')){
+					record.set('dateCreated', now);
+				}
+
 				record.set('recordid', results.rids[i].rid);
+
+				if(fids.dateModified){
+					record.set('dateModified', now);
+				}
 			});
 
 			return that;
