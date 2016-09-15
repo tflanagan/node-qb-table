@@ -5,7 +5,7 @@ var QBTable = (function(){
 	/* Versioning */
 	var VERSION_MAJOR = 0;
 	var VERSION_MINOR = 4;
-	var VERSION_PATCH = 5;
+	var VERSION_PATCH = 6;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -554,7 +554,7 @@ var QBTable = (function(){
 				val = val.toString();
 			}
 
-			val = val.replace(/\"/g, '""').replace(/\&/g, '&amp;');
+			val = val.replace(/\"/g, '""');
 
 			val = '"' + val + '"';
 		}
