@@ -174,3 +174,8 @@ API_EditRecord.
 ### Static Methods
 -------
 #### `QBTable.NewRecord(table, options)`
+ - `table`: QBTable, required
+ - `options`: obj, required
+
+Returns a new QBRecord instance built off of `options`, that inherits
+configuration data from the passed in `QBTable`, `table` argument.
