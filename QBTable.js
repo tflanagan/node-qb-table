@@ -5,7 +5,7 @@ var QBTable = (function(){
 	/* Versioning */
 	var VERSION_MAJOR = 0;
 	var VERSION_MINOR = 4;
-	var VERSION_PATCH = 6;
+	var VERSION_PATCH = 7;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -214,15 +214,15 @@ var QBTable = (function(){
 		return this._data.records.length;
 	};
 
-	QBTable.prototype.getOptions = function(options){
+	QBTable.prototype.getOptions = function(){
 		return this._options;
 	};
 
-	QBTable.prototype.getQuery = function(query){
+	QBTable.prototype.getQuery = function(){
 		return this._query;
 	};
 
-	QBTable.prototype.getSList = function(slist){
+	QBTable.prototype.getSList = function(){
 		return this._slist;
 	};
 
