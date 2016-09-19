@@ -4,8 +4,8 @@ var QBTable = (function(){
 
 	/* Versioning */
 	var VERSION_MAJOR = 0;
-	var VERSION_MINOR = 4;
-	var VERSION_PATCH = 7;
+	var VERSION_MINOR = 5;
+	var VERSION_PATCH = 0;
 
 	/* Dependencies */
 	if(typeof(window.QuickBase) === 'undefined'){
@@ -292,7 +292,7 @@ var QBTable = (function(){
 				return newRecord;
 			});
 
-			return that;
+			return that.getRecords();
 		});
 	};
 
@@ -308,7 +308,7 @@ var QBTable = (function(){
 
 			that._data.records = records;
 
-			return that;
+			return that.getFields();
 		});
 	};
 
