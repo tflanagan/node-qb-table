@@ -55,7 +55,7 @@ If `byId` is `true`, then this returns the Field Id of the passed in `field`
 If `byId` is `false`, then this returns the Field Name of the passed in `field`
 (integer).
 
-#### `.getFids(field)`
+#### `.getFids()`
 Returns the configured `fids` object.
 
 #### `.getField(id)`
@@ -77,12 +77,6 @@ Returns the configured `options`.
 #### `.getQuery()`
 Returns the configured `query`.
 
-#### `.getSList()`
-Returns the configured `slist`.
-
-#### `.getTableName()`
-If `.load()` or `.loadSchema()` has been executed, returns the table name.
-
 #### `.getRecord(value, fieldName, returnIndex)`
  - `value`: mixed, required
  - `fieldName`: string, required
@@ -97,6 +91,15 @@ If `returnIndex` is false, then it returns the QBRecord instance.
 
 #### `.getRecords()`
 If a `.load()` has been executed, return the loaded QBRecords;
+
+#### `.getSList()`
+Returns the configured `slist`.
+
+#### `.getTableName()`
+If `.load()` or `.loadSchema()` has been executed, returns the table name.
+
+#### `.getVariables()`
+If `.load()` or `.loadSchema()` has been executed, returns defined variables.
 
 #### `.load(localQuery)`
  - `localQuery`: string

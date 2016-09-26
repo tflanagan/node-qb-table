@@ -4,7 +4,7 @@ var QBTable = (function(){
 
 	/* Versioning */
 	var VERSION_MAJOR = 0;
-	var VERSION_MINOR = 5;
+	var VERSION_MINOR = 6;
 	var VERSION_PATCH = 0;
 
 	/* Dependencies */
@@ -152,7 +152,7 @@ var QBTable = (function(){
 
 		return this._qb.api('API_PurgeRecords', {
 			dbid: this.getDBID(),
-			query: [].concat(localQuery || [], this.getQuery()).join('AND')
+			query: this.getQuery()
 		}).then(function(){
 			return that;
 		}).catch(function(err){
@@ -191,7 +191,7 @@ var QBTable = (function(){
 		return id;
 	};
 
-	QBTable.prototype.getFids = function(field){
+	QBTable.prototype.getFids = function(){
 		return this._fids;
 	};
 
@@ -222,14 +222,6 @@ var QBTable = (function(){
 		return this._query;
 	};
 
-	QBTable.prototype.getSList = function(){
-		return this._slist;
-	};
-
-	QBTable.prototype.getTableName = function(){
-		return this._data.name;
-	};
-
 	QBTable.prototype.getRecord = function(value, fieldName, returnIndex){
 		var records = this.getRecords(),
 			i = -1;
@@ -256,6 +248,18 @@ var QBTable = (function(){
 
 	QBTable.prototype.getRecords = function(){
 		return this._data.records;
+	};
+
+	QBTable.prototype.getSList = function(){
+		return this._slist;
+	};
+
+	QBTable.prototype.getTableName = function(){
+		return this._data.name;
+	};
+
+	QBTable.prototype.getVariables = function(){
+		return this._data.variables;
 	};
 
 	QBTable.prototype.load = function(localQuery){
