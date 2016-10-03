@@ -4,7 +4,7 @@ var QBTable = (function(){
 
 	/* Versioning */
 	var VERSION_MAJOR = 0;
-	var VERSION_MINOR = 6;
+	var VERSION_MINOR = 7;
 	var VERSION_PATCH = 0;
 
 	/* Dependencies */
@@ -256,6 +256,10 @@ var QBTable = (function(){
 
 	QBTable.prototype.getTableName = function(){
 		return this._data.name;
+	};
+
+	QBTable.prototype.getVariable = function(name){
+		return this._data.variables[name];
 	};
 
 	QBTable.prototype.getVariables = function(){

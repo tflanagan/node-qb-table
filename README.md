@@ -98,6 +98,12 @@ Returns the configured `slist`.
 #### `.getTableName()`
 If `.load()` or `.loadSchema()` has been executed, returns the table name.
 
+#### `.getVariable(name)`
+ - `name`: string, required
+
+If `.load()` or `.loadSchema()` has been executed, returns defined requested
+variable.
+
 #### `.getVariables()`
 If `.load()` or `.loadSchema()` has been executed, returns defined variables.
 
