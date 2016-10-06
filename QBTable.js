@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 1;
-const VERSION_PATCH = 1;
+const VERSION_PATCH = 2;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -39,6 +39,8 @@ const defaults = {
 class QBTable {
 
 	constructor(options){
+		this.className = QBTable.className;
+
 		this._dbid = '';
 		this._query = '';
 		this._fids = {};
