@@ -1,54 +1,44 @@
-var QBTable = (function(){
+'use strict';
 
-	'use strict';
+/* Versioning */
+const VERSION_MAJOR = 1;
+const VERSION_MINOR = 0;
+const VERSION_PATCH = 0;
 
-	/* Versioning */
-	var VERSION_MAJOR = 0;
-	var VERSION_MINOR = 7;
-	var VERSION_PATCH = 0;
+/* Dependencies */
+const merge = require('lodash.merge');
+const QBRecord = require('qb-record');
+const QuickBase = require('quickbase');
 
-	/* Dependencies */
-	if(typeof(window.QuickBase) === 'undefined'){
-		window.QuickBase = {};
+/* Default Settings */
+const defaults = {
+	quickbase: {
+		realm: window ? window.location.host.split('.')[0] : '',
+		appToken: ''
+	},
 
-		$('<script />', {
-			type: 'text/javascript',
-			src: 'https://cdn.datacollaborative.com/js/quickbase/quickbase.browserify.min.js'
-		}).appendTo('head');
-	}
+	dbid: (function(){
+		if(!window){
+			return '';
+		}
 
-	if(typeof(window.QBRecord) === 'undefined'){
-		window.QBRecord = {};
+		var dbid = window.location.pathname.match(/^\/db\/(?!main)(.*)$/);
 
-		$('<script />', {
-			type: 'text/javascript',
-			src: 'https://cdn.datacollaborative.com/js/qb-record/QBRecord.min.js'
-		}).appendTo('head');
-	}
+		return dbid ? dbid[1] : '';
+	})(),
+	query: '',
+	fids: {
+		recordid: 3,
+		primaryKey: 3
+	},
+	slist: '',
+	options: ''
+};
 
-	/* Defaults */
-	var defaults = {
-		quickbase: {
-			realm: window.location.host.split('.')[0],
-			appToken: ''
-		},
+/* Main Class */
+class QBTable {
 
-		dbid: (function(){
-			var dbid = window.location.pathname.match(/^\/db\/(?!main)(.*)$/);
-
-			return dbid ? dbid[1] : '';
-		})(),
-		query: '',
-		fids: {
-			recordid: 3,
-			primaryKey: 3
-		},
-		slist: '',
-		options: ''
-	};
-
-	/* QBTable */
-	var QBTable = function(options){
+	constructor(options){
 		this._dbid = '';
 		this._query = '';
 		this._fids = {};
@@ -58,59 +48,39 @@ var QBTable = (function(){
 			records: []
 		};
 
-		var that = this,
-			init = function(){
-				if(options && options.quickbase instanceof QuickBase){
-					that._qb = options.quickbase;
+		if(options && options.quickbase instanceof QuickBase){
+			this._qb = options.quickbase;
 
-					delete options.quickbase
-				}
+			delete options.quickbase
+		}
 
-				var settings = $.extend(true, {}, defaults, options || {});
+		const settings = merge({}, QBTable.defaults, options || {});
 
-				that.setDBID(settings.dbid)
-					.setQuery(settings.query)
-					.setFids(settings.fids)
-					.setSList(settings.slist)
-					.setOptions(settings.options);
+		this.setDBID(settings.dbid)
+			.setQuery(settings.query)
+			.setFids(settings.fids)
+			.setSList(settings.slist)
+			.setOptions(settings.options);
 
-				if(!that._qb){
-					that._qb = new QuickBase(settings.quickbase);
-				}
-			};
-
-		if(typeof(QuickBase) === 'function'){
-			init();
-		}else{
-			var nS = setInterval(function(){
-				if([
-					typeof(QuickBase) === 'function'
-				].indexOf(false) !== -1){
-					return false;
-				}
-
-				clearInterval(nS);
-
-				init();
-			});
+		if(!this._qb){
+			this._qb = new QuickBase(settings.quickbase);
 		}
 
 		return this;
-	};
+	}
 
-	QBTable.prototype.clear = function(){
+	clear(){
 		this._data = {
 			records: []
 		};
 
 		return this;
-	};
+	}
 
-	QBTable.prototype.deleteRecord = function(record){
-		var that = this,
-			i = -1;
+	deleteRecord(record){
+		let i = -1;
 
-		this.getRecords().some(function(r, o){
+		this.getRecords().some((r, o) => {
 			if(record._id === r._id){
 				i = o;
 
@@ -124,51 +94,49 @@ var QBTable = (function(){
 			return QuickBase.Promise.resolve();
 		}
 
-		var record = this._data.records.splice(i, 1)[0];
+		record = this._data.records.splice(i, 1)[0];
 
 		if(record.get('recordid')){
-			return record.delete().then(function(results){
-				return that;
-			}).catch(function(err){
-				that._data.records.push(record);
+			return record.delete().then((results) => {
+				return this;
+			}).catch((err) => {
+				this._data.records.push(record);
 
 				throw err;
 			});
 		}
 
 		return QuickBase.Promise.resolve();
-	};
+	}
 
-	QBTable.prototype.deleteRecords = function(individually){
-		var that = this;
-
+	deleteRecords(individually){
 		if(individually){
-			return QuickBase.Promise.map(this.getRecords(), function(record){
-				return that.deleteRecord(record);
+			return QuickBase.Promise.map(this.getRecords(), (record) => {
+				return this.deleteRecord(record);
 			});
 		}
 
-		var records = this._data.records.splice(0, this.getNRecords());
+		const records = this._data.records.splice(0, this.getNRecords());
 
 		return this._qb.api('API_PurgeRecords', {
 			dbid: this.getDBID(),
 			query: this.getQuery()
-		}).then(function(){
-			return that;
-		}).catch(function(err){
-			that._data.records = that._data.records.concat(records);
+		}).then(() => {
+			return this;
+		}).catch((err) => {
+			this._data.records = this._data.records.concat(records);
 
 			throw err;
 		});
 	};
 
-	QBTable.prototype.getDBID = function(){
+	getDBID(){
 		return this._dbid;
 	};
 
-	QBTable.prototype.getFid = function(field, byId){
-		var fids = this.getFids(),
-			id = -1;
+	getFid(field, byId){
+		const fids = this.getFids();
+		let id = -1;
 
 		if(byId !== true){
 			if(fids.hasOwnProperty(field)){
@@ -177,7 +145,7 @@ var QBTable = (function(){
 		}else{
 			field = +field;
 
-			Object.keys(fids).some(function(name){
+			Object.keys(fids).some((name) => {
 				if(fids[name] === field){
 					id = name;
 
@@ -191,13 +159,13 @@ var QBTable = (function(){
 		return id;
 	};
 
-	QBTable.prototype.getFids = function(){
+	getFids(){
 		return this._fids;
 	};
 
-	QBTable.prototype.getField = function(id){
-		var fields = this.getFields(),
-			i = indexOfObj(fields, 'id', +id);
+	getField(id){
+		const fields = this.getFields();
+		const i = indexOfObj(fields, 'id', +id);
 
 		if(i === -1){
 			return undefined;
@@ -206,27 +174,27 @@ var QBTable = (function(){
 		return fields[i];
 	};
 
-	QBTable.prototype.getFields = function(){
+	getFields(){
 		return this._data.fields;
 	};
 
-	QBTable.prototype.getNRecords = function(){
+	getNRecords(){
 		return this._data.records.length;
 	};
 
-	QBTable.prototype.getOptions = function(){
+	getOptions(){
 		return this._options;
 	};
 
-	QBTable.prototype.getQuery = function(){
+	getQuery(){
 		return this._query;
 	};
 
-	QBTable.prototype.getRecord = function(value, fieldName, returnIndex){
-		var records = this.getRecords(),
-			i = -1;
+	getRecord(value, fieldName, returnIndex){
+		const records = this.getRecords();
+		let i = -1;
 
-		records.some(function(record, o){
+		records.some((record, o) => {
 			if(record.get(fieldName) !== value){
 				return false;
 			}
@@ -246,99 +214,95 @@ var QBTable = (function(){
 		return records[i];
 	};
 
-	QBTable.prototype.getRecords = function(){
+	getRecords(){
 		return this._data.records;
 	};
 
-	QBTable.prototype.getSList = function(){
+	getSList(){
 		return this._slist;
 	};
 
-	QBTable.prototype.getTableName = function(){
+	getTableName(){
 		return this._data.name;
 	};
 
-	QBTable.prototype.getVariable = function(name){
+	getVariable(name){
 		return this._data.variables[name];
 	};
 
-	QBTable.prototype.getVariables = function(){
+	getVariables(){
 		return this._data.variables;
 	};
 
-	QBTable.prototype.load = function(localQuery){
-		var that = this,
-			dbid = this.getDBID(),
-			fids = this.getFids();
+	load(localQuery){
+		const dbid = this.getDBID();
+		const fids = this.getFids();
 
 		return this._qb.api('API_DoQuery', {
 			dbid: dbid,
 			query: [].concat(localQuery || [], this.getQuery()).join('AND'),
-			clist: Object.keys(fids).map(function(fid){
+			clist: Object.keys(fids).map((fid) => {
 				return fids[fid];
 			}),
 			slist: this.getSList(),
 			options: this.getOptions(),
 			includeRids: true
-		}).then(function(results){
-			that._data = results.table;
+		}).then((results) => {
+			this._data = results.table;
 
-			that._data.records = that._data.records.map(function(record){
-				var newRecord = new QBRecord({
-					quickbase: that._qb,
+			this._data.records = this._data.records.map((record) => {
+				const newRecord = new QBRecord({
+					quickbase: this._qb,
 					dbid: dbid,
 					fids: fids,
 					recordid: record.rid
 				});
 
-				Object.keys(fids).forEach(function(fid){
+				Object.keys(fids).forEach((fid) => {
 					newRecord.set(fid, record[fids[fid]]);
 				});
 
-				newRecord._fields = that._data.fields;
+				newRecord._fields = this._data.fields;
 
 				return newRecord;
 			});
 
-			return that.getRecords();
+			return this.getRecords();
 		});
 	};
 
-	QBTable.prototype.loadSchema = function(){
-		var that = this;
-
+	loadSchema(){
 		return this._qb.api('API_GetSchema', {
 			dbid: this.getDBID()
-		}).then(function(results){
-			var records = that._data.records;
+		}).then((results) => {
+			const records = this._data.records;
 
-			that._data = results.table;
+			this._data = results.table;
 
-			that._data.records = records;
+			this._data.records = records;
 
-			return that.getFields();
+			return this.getFields();
 		});
 	};
 
-	QBTable.prototype.save = function(individually){
-		var that = this;
-
+	save(individually){
 		if(individually){
-			return QuickBase.Promise.map(this.getRecords(), function(record){
+			return QuickBase.Promise.map(this.getRecords(), (record) => {
 				return record.save();
-			}).then(function(){
-				return that;
+			}).then(() => {
+				return this;
 			});
 		}
 
-		var fids = this.getFids(),
-			names = Object.keys(fids),
-			records = this.getRecords(),
-			clist = [fids.recordid];
+		const fids = this.getFids();
+		const names = Object.keys(fids);
+		const records = this.getRecords();
 
-		names.forEach(function(name){
-			var id = fids[name],
-				field = that.getField(id);
+		let clist = [fids.recordid];
+
+		names.forEach((name) => {
+			const id = fids[name];
+			const field = this.getField(id);
 
 			if(id <= 5 || (field && [
 				'summary',
@@ -351,10 +315,10 @@ var QBTable = (function(){
 			clist.push(id);
 		});
 
-		var csv = records.reduce(function(csv, record){
-			return csv.concat(clist.reduce(function(row, fid){
-				var name = that.getFid(fid, true),
-					value = record.get(name);
+		const csv = records.reduce((csv, record) => {
+			return csv.concat(clist.reduce((row, fid) => {
+				const name = this.getFid(fid, true);
+				let value = record.get(name);
 
 				if(value === null){
 					value = '';
@@ -372,10 +336,10 @@ var QBTable = (function(){
 			dbid: this.getDBID(),
 			clist: clist,
 			records_csv: csv
-		}).then(function(results){
-			var now = Date.now();
+		}).then((results) => {
+			const now = Date.now();
 
-			records.forEach(function(record, i){
+			records.forEach((record, i) => {
 				if(fids.dateCreated && !record.get('recordid')){
 					record.set('dateCreated', now);
 				}
@@ -387,61 +351,58 @@ var QBTable = (function(){
 				}
 			});
 
-			return that;
+			return this;
 		});
 	};
 
-	QBTable.prototype.setDBID = function(dbid){
+	setDBID(dbid){
 		this._dbid = dbid;
 
-		this.getRecords().forEach(function(record){
+		this.getRecords().forEach((record) => {
 			record.setDBID(dbid);
 		});
 
 		return this;
 	};
 
-	QBTable.prototype.setFid = function(name, id){
+	setFid(name, id){
 		this._fids[name] = +id;
 
-		this.getRecords().forEach(function(record){
+		this.getRecords().forEach((record) => {
 			record.setFid(name, id);
 		});
 
 		return this;
 	};
 
-	QBTable.prototype.setFids = function(fields){
-		var that = this;
-
-		Object.keys(fields).forEach(function(name){
-			that.setFid(name, fields[name]);
+	setFids(fields){
+		Object.keys(fields).forEach((name) => {
+			this.setFid(name, fields[name]);
 		});
 
 		return this;
 	};
 
-	QBTable.prototype.setOptions = function(options){
+	setOptions(options){
 		this._options = options;
 
 		return this;
 	};
 
-	QBTable.prototype.setQuery = function(query){
+	setQuery(query){
 		this._query = query;
 
 		return this;
 	};
 
-	QBTable.prototype.setSList = function(slist){
+	setSList(slist){
 		this._slist = slist;
 
 		return this;
 	};
 
-	QBTable.prototype.upsertRecord = function(options, autoSave){
-		var that = this,
-			record = undefined;
+	upsertRecord(options, autoSave){
+		let record = undefined;
 
 		if(!options){
 			options = {};
@@ -452,12 +413,12 @@ var QBTable = (function(){
 
 			this._data.records.push(record);
 		}else{
-			var _upsertRecord = function(){
-				Object.keys(options).forEach(function(name){
+			const _upsertRecord = () => {
+				Object.keys(options).forEach((name) => {
 					record.set(name, options[name]);
 				});
 
-				record._fields = that._data._fields;
+				record._fields = this._data._fields;
 			};
 
 			if(options.recordid){
@@ -483,7 +444,7 @@ var QBTable = (function(){
 		}
 
 		if(autoSave === true){
-			return record.save().then(function(){
+			return record.save().then(() => {
 				return record;
 			});
 		}
@@ -491,88 +452,102 @@ var QBTable = (function(){
 		return QuickBase.Promise.resolve(record);
 	};
 
-	/* Static Methods */
-	QBTable.NewRecord = function(table, options){
-		var record = new QBRecord({
-			quickbase: table._qb,
-			dbid: table.getDBID(),
-			fids: table.getFids()
-		});
+}
 
-		Object.keys(options).forEach(function(name){
-			record.set(name, options[name]);
-		});
+/* Expose Static Methods */
+QBTable.NewRecord = function(table, options){
+	const record = new QBRecord({
+		quickbase: table._qb,
+		dbid: table.getDBID(),
+		fids: table.getFids()
+	});
 
-		return record;
-	};
+	Object.keys(options).forEach((name) => {
+		record.set(name, options[name]);
+	});
 
-	/* Helpers */
-	var indexOfObj = function(obj, key, value){
-		if(typeof(obj) !== 'object'){
-			return -1;
-		}
+	return record;
+};
 
-		var result,
-			i = 0, l = obj.length,
-			o = 0, k = 0;
+/* Expose Properties */
+QBTable.defaults = defaults;
 
-		for(; i < l; ++i){
-			if(typeof(key) === 'object'){
-				result = new Array(key.length);
-				result = setAll(result, false);
-
-				for(o = 0, k = result.length; o < k; ++o){
-					if(obj[i][key[o]] === value[o]){
-						result[o] = true;
-					}
-				}
-
-				if(result.indexOf(false) === -1){
-					return i;
-				}
-			}else{
-				if(obj[i][key] === value){
-					return i;
-				}
-			}
-		}
-
+/* Helpers */
+const indexOfObj = function(obj, key, value){
+	if(typeof(obj) !== 'object'){
 		return -1;
-	};
+	}
 
-	var setAll = function(arr, value){
-		for(var i = 0; i < arr.length; ++i){
-			arr[i] = value;
-		}
+	let result,  i = 0, o = 0, k = 0;
+	const l = obj.length;
 
-		return arr;
-	};
+	for(; i < l; ++i){
+		if(typeof(key) === 'object'){
+			result = new Array(key.length);
+			result = setAll(result, false);
 
-	var val2csv = function(val){
-		if(!val){
-			return val;
-		}
-
-		if(typeof(val) === 'boolean'){
-			val = val ? 1 : 0;
-		}
-
-		if(typeof(val) !== 'number' && (isNaN(val) || !isFinite(val) || val.match(/e/))){
-			if(val.match(/e/)){
-				val = val.toString();
+			for(o = 0, k = result.length; o < k; ++o){
+				if(obj[i][key[o]] === value[o]){
+					result[o] = true;
+				}
 			}
 
-			val = val.replace(/\"/g, '""');
+			if(result.indexOf(false) === -1){
+				return i;
+			}
+		}else{
+			if(obj[i][key] === value){
+				return i;
+			}
+		}
+	}
 
-			val = '"' + val + '"';
+	return -1;
+};
+
+const setAll = function(arr, value){
+	for(let i = 0; i < arr.length; ++i){
+		arr[i] = value;
+	}
+
+	return arr;
+};
+
+const val2csv = function(val){
+	if(!val){
+		return val;
+	}
+
+	if(typeof(val) === 'boolean'){
+		val = val ? 1 : 0;
+	}
+
+	if(typeof(val) !== 'number' && (isNaN(val) || !isFinite(val) || val.match(/e/))){
+		if(val.match(/e/)){
+			val = val.toString();
 		}
 
-		return val;
-	};
+		val = val.replace(/\"/g, '""');
 
-	/* Expose Version */
-	QBTable.VERSION = [ VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH ].join('.');
+		val = '"' + val + '"';
+	}
 
-	return QBTable;
+	return val;
+};
 
-})();
+/* Expose Version */
+QBTable.VERSION = [ VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH ].join('.');
+
+/* Export Module */
+if(typeof module !== 'undefined' && module.exports){
+	module.exports = QBTable;
+}else
+if(typeof define === 'function' && define.amd){
+	define('QBTable', [], function(){
+		return QBTable;
+	});
+}
+
+if(typeof global !== 'undefined' && typeof window !== 'undefined' && global === window){
+	global.QBTable = QBTable;
+}
