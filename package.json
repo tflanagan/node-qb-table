@@ -42,7 +42,7 @@
     "build": "gulp build"
   },
   "dependencies": {
-    "quickbase": "^2.8.0",
+    "quickbase": "^2.8.1",
     "qb-record": "git+ssh://git@gitlab.datacollaborative.com:products/qb-record.git",
     "lodash.merge": "^4.3.4"
   },

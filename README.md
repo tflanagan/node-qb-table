@@ -118,13 +118,17 @@ in the `fids` object.
 #### `.loadSchema()`
 Executes an API_GetSchema and stores the returned results internally.
 
-#### `.save(individually)`
+#### `.save(individually, fidsToSave)`
  - `individually`: boolean, defaults to false
+ - `fidsToSave`: array, defaults to undefined
 
 If `individually` is `true`, then it executes an API_AddRecord or
 API_EditRecord for each locally loaded QBRecord.
 If `individually` is `false`, then it executes an API_ImportFromCSV which
 includes every locally loaded QBRecord.
+
+If `fidsToSave` is defined, then only configured fids in this array will be
+saved.
 
 If this adds a new record to the table, the newly assigned Record ID is
 automatically stored internally. If the defined primaryKey FID is also a
