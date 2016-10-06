@@ -2,8 +2,8 @@
 
 /* Versioning */
 const VERSION_MAJOR = 1;
-const VERSION_MINOR = 0;
-const VERSION_PATCH = 1;
+const VERSION_MINOR = 1;
+const VERSION_PATCH = 0;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -48,7 +48,7 @@ class QBTable {
 			records: []
 		};
 
-		if(options && options.quickbase instanceof QuickBase){
+		if(options && options.quickbase.className && options.quickbase.className === 'QuickBase'){
 			this._qb = options.quickbase;
 
 			delete options.quickbase
@@ -408,7 +408,7 @@ class QBTable {
 			options = {};
 		}
 
-		if(options instanceof QBRecord){
+		if(options && options.className && options.className === 'QBRecord'){
 			record = options;
 
 			this._data.records.push(record);
@@ -534,6 +534,9 @@ const val2csv = function(val){
 
 	return val;
 };
+
+/* Expose Properties */
+QBTable.className = 'QBTable';
 
 /* Expose Version */
 QBTable.VERSION = [ VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH ].join('.');
