@@ -2,8 +2,8 @@
 
 /* Versioning */
 const VERSION_MAJOR = 1;
-const VERSION_MINOR = 2;
-const VERSION_PATCH = 3;
+const VERSION_MINOR = 3;
+const VERSION_PATCH = 0;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -48,6 +48,7 @@ class QBTable {
 		this._fids = {};
 		this._slist = '';
 		this._options = '';
+		this._nRecords = false;
 		this._data = {
 			records: []
 		};
@@ -183,7 +184,7 @@ class QBTable {
 	};
 
 	getNRecords(){
-		return this._data.records.length;
+		return this._nRecords !== false ? this._nRecords : this._data.records.length;
 	};
 
 	getOptions(){
@@ -238,18 +239,18 @@ class QBTable {
 		return this._data.variables;
 	};
 
-	load(localQuery){
+	load(localQuery, localClist, localSlist, localOptions){
 		const dbid = this.getDBID();
 		const fids = this.getFids();
 
 		return this._qb.api('API_DoQuery', {
 			dbid: dbid,
 			query: [].concat(localQuery || [], this.getQuery()).join('AND'),
-			clist: Object.keys(fids).map((fid) => {
+			clist: localClist || Object.keys(fids).map((fid) => {
 				return fids[fid];
 			}),
-			slist: this.getSList(),
-			options: this.getOptions(),
+			slist: localSlist || this.getSList(),
+			options: localOptions || this.getOptions(),
 			includeRids: true
 		}).then((results) => {
 			this._data = results.table;
@@ -271,7 +272,20 @@ class QBTable {
 				return newRecord;
 			});
 
+			this._nRecords = false;
+
 			return this.getRecords();
+		});
+	};
+
+	loadNRecords(localQuery){
+		return this._qb.api('API_DoQueryCount', {
+			dbid: this.getDBID(),
+			query: [].concat(localQuery || [], this.getQuery()).join('AND')
+		}).then((results) => {
+			this._nRecords = results.numMatches;
+
+			return this.getNRecords();
 		});
 	};
 
@@ -284,6 +298,10 @@ class QBTable {
 			this._data = results.table;
 
 			this._data.records = records;
+
+			if(this._nRecords !== false && this._data.records.length !== 0){
+				this._nRecords = false;
+			}
 
 			return this.getFields();
 		});

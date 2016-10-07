@@ -109,11 +109,27 @@ variable.
 #### `.getVariables()`
 If `.load()` or `.loadSchema()` has been executed, returns defined variables.
 
-#### `.load(localQuery)`
+#### `.load(localQuery, localClist, localSlist, localOptions)`
  - `localQuery`: string
+ - `localClist`: string
+ - `localSlist`: string
+ - `localOptions`: string
 
 This method executes an API_DoQuery. Will automatically map all values defined
-in the `fids` object.
+in the `fids` or `localClist` object.
+
+If `localQuery` is defined, it will be appended to the defined table query.
+If `localClist` is defined, this will be used instead of the defined `fids`.
+If `localSlist` is defined, this will be used instead of the defined `slist`.
+if `localOptions` is defined, this will be used instead of the defined
+`options`.
+
+#### `.loadNRecords(localQuery)`
+ - `localQuery`: string
+
+This method executes an API_DoQueryCount.
+
+If `localQuery` is defined, it will be appended to the defined table query.
 
 #### `.loadSchema()`
 Executes an API_GetSchema and stores the returned results internally.
