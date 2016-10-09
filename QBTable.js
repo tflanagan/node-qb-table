@@ -241,7 +241,7 @@ class QBTable {
 
 	load(localQuery, localClist, localSlist, localOptions){
 		if(typeof(localQuery) === 'object'){
-			localOptions = localQuery.query;
+			localOptions = localQuery.options;
 			localSlist = localQuery.slist;
 			localClist = localQuery.clist;
 			localQuery = localQuery.query;
