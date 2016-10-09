@@ -2,7 +2,7 @@
 
 /* Versioning */
 const VERSION_MAJOR = 1;
-const VERSION_MINOR = 3;
+const VERSION_MINOR = 4;
 const VERSION_PATCH = 0;
 
 /* Dependencies */
@@ -240,6 +240,13 @@ class QBTable {
 	};
 
 	load(localQuery, localClist, localSlist, localOptions){
+		if(typeof(localQuery) === 'object'){
+			localOptions = localQuery.query;
+			localSlist = localQuery.slist;
+			localClist = localQuery.clist;
+			localQuery = localQuery.query;
+		}
+
 		const dbid = this.getDBID();
 		const fids = this.getFids();
 
