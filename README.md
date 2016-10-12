@@ -45,6 +45,9 @@ locally loaded QBRecord.
 If `individually` is `false`, then it executes an API_PurgeRecords for all of
 the locally loaded QBRecord's.
 
+#### `.getAppID()`
+This method returns the stored App ID.
+
 #### `.getDBID()`
 This method returns the stored DBID.
 
