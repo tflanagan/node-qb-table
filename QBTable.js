@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 5;
-const VERSION_PATCH = 0;
+const VERSION_PATCH = 1;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -254,9 +254,17 @@ class QBTable {
 		const dbid = this.getDBID();
 		const fids = this.getFids();
 
+		if(this.getQuery()){
+			if(localQuery){
+				localQuery += 'AND(' + this.getQuery() + ')';
+			}else{
+				localQuery = this.getQuery();
+			}
+		}
+
 		return this._qb.api('API_DoQuery', {
 			dbid: dbid,
-			query: localQuery ? localQuery + 'AND(' + this.getQuery() + ')' : this.getQuery(),
+			query: localQuery,
 			clist: localClist || Object.keys(fids).map((fid) => {
 				return fids[fid];
 			}),
@@ -290,9 +298,17 @@ class QBTable {
 	};
 
 	loadNRecords(localQuery){
+		if(this.getQuery()){
+			if(localQuery){
+				localQuery += 'AND(' + this.getQuery() + ')';
+			}else{
+				localQuery = this.getQuery();
+			}
+		}
+
 		return this._qb.api('API_DoQueryCount', {
 			dbid: this.getDBID(),
-			query: localQuery ? localQuery + 'AND(' + this.getQuery() + ')' : this.getQuery()
+			query: localQuery
 		}).then((results) => {
 			this._nRecords = results.numMatches;
 
