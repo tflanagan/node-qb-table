@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 5;
-const VERSION_PATCH = 1;
+const VERSION_PATCH = 2;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -510,6 +510,8 @@ QBTable.NewRecord = function(table, options){
 		dbid: table.getDBID(),
 		fids: table.getFids()
 	});
+
+	record._fields = table.getFields();
 
 	Object.keys(options).forEach((name) => {
 		record.set(name, options[name]);
