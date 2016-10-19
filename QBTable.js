@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 5;
-const VERSION_PATCH = 4;
+const VERSION_PATCH = 5;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -86,7 +86,7 @@ class QBTable {
 		let i = -1;
 
 		this.getRecords().some((r, o) => {
-			if(record._id === r._id){
+			if(record._id === r._id || record.get('recordid') === r.get('recordid')){
 				i = o;
 
 				return true;
