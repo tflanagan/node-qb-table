@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 5;
-const VERSION_PATCH = 5;
+const VERSION_PATCH = 6;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -474,7 +474,7 @@ class QBTable {
 					record.set(name, options[name]);
 				});
 
-				record._fields = this._data._fields;
+				record._fields = this.getFields();
 			};
 
 			if(options.recordid){
