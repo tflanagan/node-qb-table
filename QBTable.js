@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 5;
-const VERSION_PATCH = 3;
+const VERSION_PATCH = 4;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -105,6 +105,10 @@ class QBTable {
 			return record.delete().then((results) => {
 				return this;
 			}).catch((err) => {
+				if(err.code === 30){
+					return this;
+				}
+
 				this._data.records.push(record);
 
 				throw err;
