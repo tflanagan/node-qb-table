@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 5;
-const VERSION_PATCH = 6;
+const VERSION_PATCH = 7;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -291,6 +291,7 @@ class QBTable {
 				});
 
 				newRecord._fields = this._data.fields;
+				newRecord.meta.name = this._data.name;
 
 				return newRecord;
 			});
@@ -475,6 +476,7 @@ class QBTable {
 				});
 
 				record._fields = this.getFields();
+				record.meta.name = this._data.name;
 			};
 
 			if(options.recordid){
@@ -519,6 +521,7 @@ QBTable.NewRecord = function(table, options){
 	});
 
 	record._fields = table.getFields();
+	record.meta.name = table.getTableName();
 
 	Object.keys(options).forEach((name) => {
 		record.set(name, options[name]);
