@@ -291,7 +291,7 @@ class QBTable {
 				});
 
 				newRecord._fields = this._data.fields;
-				newRecord.meta.name = this._data.name;
+				newRecord._meta.name = this._data.name;
 
 				return newRecord;
 			});
@@ -476,7 +476,7 @@ class QBTable {
 				});
 
 				record._fields = this.getFields();
-				record.meta.name = this._data.name;
+				record._meta.name = this._data.name;
 			};
 
 			if(options.recordid){
@@ -521,7 +521,7 @@ QBTable.NewRecord = function(table, options){
 	});
 
 	record._fields = table.getFields();
-	record.meta.name = table.getTableName();
+	record._meta.name = table.getTableName();
 
 	Object.keys(options).forEach((name) => {
 		record.set(name, options[name]);
