@@ -2,8 +2,8 @@
 
 /* Versioning */
 const VERSION_MAJOR = 1;
-const VERSION_MINOR = 5;
-const VERSION_PATCH = 9;
+const VERSION_MINOR = 6;
+const VERSION_PATCH = 0;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -50,7 +50,11 @@ class QBTable {
 		this._options = '';
 		this._nRecords = false;
 		this._data = {
-			records: []
+			name: '',
+			fields: [],
+			original: {},
+			records: [],
+			variables: []
 		};
 
 		if(options && options.quickbase.className && options.quickbase.className === 'QuickBase'){
@@ -76,7 +80,11 @@ class QBTable {
 
 	clear(){
 		this._data = {
-			records: []
+			name: '',
+			fields: [],
+			original: {},
+			records: [],
+			variables: []
 		};
 
 		return this;
@@ -140,7 +148,7 @@ class QBTable {
 	};
 
 	getAppID(){
-		return this._data.original ? this._data.original.app_id : null;
+		return this._data.original.app_id;
 	};
 
 	getDBID(){
@@ -247,8 +255,10 @@ class QBTable {
 		return this._data.variables;
 	};
 
-	load(localQuery, localClist, localSlist, localOptions){
+	load(localQuery, localClist, localSlist, localOptions, preserve){
 		if(typeof(localQuery) === 'object'){
+			preserve = localClist;
+
 			localOptions = localQuery.options;
 			localSlist = localQuery.slist;
 			localClist = localQuery.clist;
@@ -276,27 +286,77 @@ class QBTable {
 			options: localOptions || this.getOptions(),
 			includeRids: true
 		}).then((results) => {
-			this._data = results.table;
+			this._nRecords = false;
 
-			this._data.records = this._data.records.map((record) => {
+			const returnedClist = localClist ? ('' + localClist).split('.').map((fid) => {
+				if(fid === 'a'){
+					return fid;
+				}
+
+				return +fid;
+			}) : [];
+
+			const prepareNewRecord = (data) => {
 				const newRecord = new QBRecord({
 					quickbase: this._qb,
 					dbid: dbid,
 					fids: fids,
-					recordid: record.rid
+					recordid: data.rid
 				});
 
-				Object.keys(fids).forEach((fid) => {
-					newRecord.set(fid, record[fids[fid]]);
-				});
+				upsertData(newRecord, data);
 
 				newRecord._fields = this._data.fields;
 				newRecord._meta.name = this._data.name;
 
 				return newRecord;
-			});
+			};
 
-			this._nRecords = false;
+			const upsertData = (record, data) => {
+				Object.keys(fids).forEach((fid) => {
+					if(localClist && (returnedClist[0] !== 'a' && returnedClist.indexOf(fids[fid]) === -1)){
+						return;
+					}
+
+					record.set(fid, data[fids[fid]]);
+				});
+			};
+
+			if(!preserve){
+				this._data = results.table;
+
+				this._data.records = this._data.records.map(prepareNewRecord);
+			}else{
+				this._data.name = results.table.name;
+				this._data.original = results.table.original;
+				this._data.variables = results.table.variables;
+
+				const l = this._data.fields.length;
+
+				results.table.fields.forEach((field) => {
+					for(let i = 0; i < l; ++i){
+						if(this._data.fields[i].id === field.id){
+							this._data.fields[i] = field;
+
+							return;
+						}
+					}
+
+					this._data.fields.push(field);
+				});
+
+				results.table.records.forEach((data) => {
+					let record = this.getRecord(data.rid, 'recordid');
+
+					if(record){
+						upsertData(record, data);
+					}else{
+						record = prepareNewRecord(data);
+
+						this._data.records.push(record);
+					}
+				});
+			}
 
 			return this.getRecords();
 		});
@@ -530,9 +590,6 @@ QBTable.NewRecord = function(table, options){
 	return record;
 };
 
-/* Expose Properties */
-QBTable.defaults = defaults;
-
 /* Helpers */
 const indexOfObj = function(obj, key, value){
 	if(typeof(obj) !== 'object'){
@@ -597,6 +654,7 @@ const val2csv = function(val){
 };
 
 /* Expose Properties */
+QBTable.defaults = defaults;
 QBTable.className = 'QBTable';
 
 /* Expose Version */
