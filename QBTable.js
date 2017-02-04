@@ -2,8 +2,8 @@
 
 /* Versioning */
 const VERSION_MAJOR = 1;
-const VERSION_MINOR = 6;
-const VERSION_PATCH = 2;
+const VERSION_MINOR = 7;
+const VERSION_PATCH = 0;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -82,6 +82,7 @@ class QBTable {
 		this._data = {
 			name: '',
 			fields: [],
+			chdbids: [],
 			original: {},
 			records: [],
 			variables: []
@@ -153,6 +154,10 @@ class QBTable {
 
 	getDBID(){
 		return this._dbid;
+	};
+
+	getChildTables(){
+		return this._data.chdbids;
 	};
 
 	getFid(field, byId){
