@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 7;
-const VERSION_PATCH = 0;
+const VERSION_PATCH = 1;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -423,7 +423,7 @@ class QBTable {
 			const id = fids[name];
 			const field = this.getField(id);
 
-			if(id <= 5 || (field && ([
+			if(!field.hasOwnProperty('snapfid') && id <= 5 || (field && ([
 				'summary',
 				'virtual',
 				'lookup'
