@@ -2,8 +2,8 @@
 
 /* Versioning */
 const VERSION_MAJOR = 1;
-const VERSION_MINOR = 7;
-const VERSION_PATCH = 6;
+const VERSION_MINOR = 8;
+const VERSION_PATCH = 0;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -212,6 +212,10 @@ class QBTable {
 		return this._options;
 	};
 
+	getPlural(){
+		return this._data.original.plural_record_name;
+	};
+
 	getQuery(){
 		return this._query;
 	};
@@ -242,6 +246,10 @@ class QBTable {
 
 	getRecords(){
 		return this._data.records;
+	};
+
+	getSingular(){
+		return this._data.original.single_record_name;
 	};
 
 	getSList(){
