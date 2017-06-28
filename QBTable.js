@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 8;
-const VERSION_PATCH = 1;
+const VERSION_PATCH = 2;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -425,7 +425,9 @@ class QBTable {
 		const names = Object.keys(fids);
 		const records = this.getRecords();
 
-		let clist = [fids.recordid];
+		const key = fids.recordid === fids.primaryKey ? fids.recordid : fids.primaryKey;
+
+		let clist = [ key ];
 
 		names.forEach((name) => {
 			const id = fids[name];
