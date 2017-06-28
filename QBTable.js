@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 8;
-const VERSION_PATCH = 0;
+const VERSION_PATCH = 1;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -438,7 +438,7 @@ class QBTable {
 			].indexOf(field.mode) !== -1 || field.hasOwnProperty('snapfid') || [
 				'ICalendarButton',
 				'vCardButton'
-			].indexOf(field.field_type) !== -1)) || (fidsToSave && fidsToSave.indexOf(fid) === -1 && fidsToSave.indexOf(name) === -1)){
+			].indexOf(field.field_type) !== -1)) || (fidsToSave && fidsToSave.indexOf(id) === -1 && fidsToSave.indexOf(name) === -1)){
 				return;
 			}
 
