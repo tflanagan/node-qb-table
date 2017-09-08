@@ -1,7 +1,7 @@
 {
   "name": "qb-table",
   "private": true,
-  "version": "1.9.2",
+  "version": "1.9.3",
   "description": "A lightweight abstraction layer for QuickBase",
   "keywords": [
     "QuickBase",

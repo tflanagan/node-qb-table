@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 9;
-const VERSION_PATCH = 2;
+const VERSION_PATCH = 3;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -300,7 +300,7 @@ class QBTable {
 			options: localOptions || this.getOptions(),
 			includeRids: true
 		}).then((results) => {
-			const records = this._load(results, localClist, preserve);
+			const records = this._load(merge({}, results), localClist, preserve);
 
 			if(returnRaw){
 				return results;
