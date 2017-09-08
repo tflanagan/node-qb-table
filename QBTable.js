@@ -2,8 +2,8 @@
 
 /* Versioning */
 const VERSION_MAJOR = 1;
-const VERSION_MINOR = 8;
-const VERSION_PATCH = 5;
+const VERSION_MINOR = 9;
+const VERSION_PATCH = 0;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -268,8 +268,9 @@ class QBTable {
 		return this._data.variables;
 	};
 
-	load(localQuery, localClist, localSlist, localOptions, preserve){
+	load(localQuery, localClist, localSlist, localOptions, preserve, returnRaw){
 		if(typeof(localQuery) === 'object'){
+			returnRaw = localSlist;
 			preserve = localClist;
 
 			localOptions = localQuery.options;
@@ -299,80 +300,93 @@ class QBTable {
 			options: localOptions || this.getOptions(),
 			includeRids: true
 		}).then((results) => {
-			this._nRecords = false;
-
-			const returnedClist = localClist ? ('' + localClist).split('.').map((fid) => {
-				if(fid === 'a'){
-					return fid;
+			return this._load(results, localClist).then((records) => {
+				if(returnRaw){
+					return results;
 				}
 
-				return +fid;
-			}) : [];
+				return records;
+			});
+		});
+	};
 
-			const prepareNewRecord = (data) => {
-				const newRecord = new QBRecord({
-					quickbase: this._qb,
-					dbid: dbid,
-					fids: fids,
-					recordid: data.rid
-				});
+	_load(results, localClist){
+		this._nRecords = false;
 
-				upsertData(newRecord, data);
+		const dbid = this.getDBID();
+		const fids = this.getFids();
 
-				newRecord._fields = this._data.fields;
-				newRecord._meta.name = this._data.name;
-
-				return newRecord;
-			};
-
-			const upsertData = (record, data) => {
-				Object.keys(fids).forEach((fid) => {
-					if(localClist && (returnedClist[0] !== 'a' && returnedClist.indexOf(fids[fid]) === -1)){
-						return;
-					}
-
-					record.set(fid, data[fids[fid]]);
-				});
-			};
-
-			if(!preserve){
-				this._data = results.table;
-
-				this._data.records = this._data.records.map(prepareNewRecord);
-			}else{
-				this._data.name = results.table.name;
-				this._data.original = results.table.original;
-				this._data.variables = results.table.variables;
-
-				const l = this._data.fields.length;
-
-				results.table.fields.forEach((field) => {
-					for(let i = 0; i < l; ++i){
-						if(this._data.fields[i].id === field.id){
-							this._data.fields[i] = field;
-
-							return;
-						}
-					}
-
-					this._data.fields.push(field);
-				});
-
-				results.table.records.forEach((data) => {
-					let record = this.getRecord(data.rid, 'recordid');
-
-					if(record){
-						upsertData(record, data);
-					}else{
-						record = prepareNewRecord(data);
-
-						this._data.records.push(record);
-					}
-				});
+		const returnedClist = localClist ? ('' + localClist).split('.').map((fid) => {
+			if(fid === 'a'){
+				return fid;
 			}
 
-			return this.getRecords();
-		});
+			return +fid;
+		}) : [];
+
+		const prepareNewRecord = (data) => {
+			const newRecord = new QBRecord({
+				quickbase: this._qb,
+				dbid: dbid,
+				fids: fids,
+				recordid: data.rid
+			});
+
+			upsertData(newRecord, data);
+
+			newRecord._fields = this._data.fields;
+			newRecord._meta.name = this._data.name;
+
+			return newRecord;
+		};
+
+		const upsertData = (record, data) => {
+			Object.keys(fids).forEach((fid) => {
+				if(localClist && (returnedClist[0] !== 'a' && returnedClist.indexOf(fids[fid]) === -1)){
+					return;
+				}
+
+				record.set(fid, data[fids[fid]]);
+			});
+		};
+
+		if(!preserve){
+			this._data = results.table;
+
+			this._data.records = this._data.records.map(prepareNewRecord);
+		}else{
+			this._data.name = results.table.name;
+			this._data.original = results.table.original;
+			this._data.variables = results.table.variables;
+
+			const l = this._data.fields.length;
+
+			results.table.fields.forEach((field) => {
+				for(let i = 0; i < l; ++i){
+					if(this._data.fields[i].id === field.id){
+						this._data.fields[i] = field;
+
+						return;
+					}
+				}
+
+				this._data.fields.push(field);
+			});
+
+			results.table.records.forEach((data) => {
+				let record = this.getRecord(data.rid, 'recordid');
+
+				if(record){
+					upsertData(record, data);
+				}else{
+					record = prepareNewRecord(data);
+
+					this._data.records.push(record);
+				}
+			});
+		}
+
+		return this.getRecords();
 	};
 
 	loadNRecords(localQuery){
