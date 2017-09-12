@@ -2,8 +2,8 @@
 
 /* Versioning */
 const VERSION_MAJOR = 1;
-const VERSION_MINOR = 9;
-const VERSION_PATCH = 3;
+const VERSION_MINOR = 10;
+const VERSION_PATCH = 0;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -54,7 +54,8 @@ class QBTable {
 			fields: [],
 			original: {},
 			records: [],
-			variables: []
+			variables: [],
+			queries: []
 		};
 
 		if(options && options.quickbase.className && options.quickbase.className === 'QuickBase'){
@@ -214,6 +215,10 @@ class QBTable {
 
 	getPlural(){
 		return this._data.original.plural_record_name;
+	};
+
+	getQueries(){
+		return this._data.queries;
 	};
 
 	getQuery(){
