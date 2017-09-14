@@ -1,7 +1,7 @@
 {
   "name": "qb-table",
-  "private": true,
-  "version": "1.10.0",
+  "private": false,
+  "version": "1.10.1",
   "description": "A lightweight abstraction layer for QuickBase",
   "keywords": [
     "QuickBase",
@@ -12,38 +12,38 @@
     "qbtable",
     "qb-table"
   ],
-  "homepage": "https://gitlab.datacollaborative.com/products/qb-table",
+  "homepage": "https://github.com/tflanagan/node-qb-table",
   "bugs": {
-    "url": "https://gitlab.datacollaborative.com/products/qb-table/issues",
-    "email": "tflanagan@datacollaborative.com"
+    "url": "https://github.com/tflanagan/node-qb-table/issues",
+    "email": "contact@tristianflanagan.com"
   },
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "author": {
     "name": "Tristian Flanagan",
-    "url": "https://gitlab.datacollaborative.com/u/tflanagan",
-    "email": "tflanagan@datacollaborative.com"
+    "url": "https://github.com/tflanagan",
+    "email": "contact@tristianflanagan.com"
   },
   "maintainers": [
     {
-      "name": "tflanagan",
-      "url": "https://gitlab.datacollaborative.com/u/tflanagan",
-      "email": "tflanagan@datacollaborative.com"
+      "name": "Tristian Flanagan",
+      "url": "https://github.com/tflanagan",
+      "email": "contact@tristianflanagan.com"
     }
   ],
   "contributors": [
-    "Tristian Flanagan <tflanagan@datacollaborative.com> (https://gitlab.datacollaborative.com/u/tflanagan)"
+    "Tristian Flanagan <contact@tristianflanagan.com> (https://github.com/tflanagan)"
   ],
   "main": "QBTable.js",
   "repository": {
     "type": "git",
-    "url": "git@gitlab.datacollaborative.com:products/qb-table.git"
+    "url": "git@github.com:tflanagan/node-qb-table.git"
   },
   "scripts": {
     "build": "gulp build"
   },
   "dependencies": {
     "quickbase": "*",
-    "qb-record": "git+ssh://git@gitlab.datacollaborative.com:products/qb-record.git",
+    "qb-record": "*",
     "lodash.merge": "*"
   },
   "devDependencies": {
@@ -58,5 +58,5 @@
   "engines": {
     "node": ">=4.0.*"
   },
-  "git": "git@gitlab.datacollaborative.com:products/qb-table.git"
+  "git": "git@github.com:tflanagan/node-qb-table.git"
 }
