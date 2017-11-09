@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 10;
-const VERSION_PATCH = 1;
+const VERSION_PATCH = 2;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -464,6 +464,10 @@ class QBTable {
 			}
 
 			clist.push(id);
+		});
+
+		clist = clist.filter((val, i, self) => {
+			return self.indexOf(val) === i;
 		});
 
 		const csv = records.reduce((csv, record) => {
