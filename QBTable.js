@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 10;
-const VERSION_PATCH = 2;
+const VERSION_PATCH = 3;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -286,6 +286,15 @@ class QBTable {
 
 		const dbid = this.getDBID();
 		const fids = this.getFids();
+		const options = {
+			dbid: dbid,
+			clist: localClist || Object.keys(fids).map((fid) => {
+				return fids[fid];
+			}),
+			slist: localSlist || this.getSList(),
+			options: localOptions || this.getOptions(),
+			includeRids: true
+		};
 
 		if(this.getQuery()){
 			if(localQuery){
@@ -295,16 +304,16 @@ class QBTable {
 			}
 		}
 
-		return this._qb.api('API_DoQuery', {
-			dbid: dbid,
-			query: localQuery,
-			clist: localClist || Object.keys(fids).map((fid) => {
-				return fids[fid];
-			}),
-			slist: localSlist || this.getSList(),
-			options: localOptions || this.getOptions(),
-			includeRids: true
-		}).then((results) => {
+		const typeofLocalQuery = typeof(localQuery);
+
+		if(typeofLocalQuery === 'string'){
+			options.query = localQuery;
+		}else
+		if(typeofLocalQuery === 'number'){
+			options.qid = localQuery;
+		}
+
+		return this._qb.api('API_DoQuery', options).then((results) => {
 			const records = this._load(merge({}, results), localClist, preserve);
 
 			if(returnRaw){
