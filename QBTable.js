@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 10;
-const VERSION_PATCH = 5;
+const VERSION_PATCH = 6;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -568,8 +568,8 @@ class QBTable {
 	};
 
 	upsertRecord(options, autoSave){
-		const _upsertRecord = () => {
-			Object.keys(options).forEach((name) => {
+		const _upsertRecord = (isRecord) => {
+			Object.keys(isRecord ? options.getFids() : options).forEach((name) => {
 				record.set(name, options[name]);
 			});
 
