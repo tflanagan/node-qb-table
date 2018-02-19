@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 10;
-const VERSION_PATCH = 4;
+const VERSION_PATCH = 5;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -568,26 +568,37 @@ class QBTable {
 	};
 
 	upsertRecord(options, autoSave){
+		const _upsertRecord = () => {
+			Object.keys(options).forEach((name) => {
+				record.set(name, options[name]);
+			});
+
+			record._fields = this.getFields();
+			record._meta.name = this._data.name;
+		};
+
 		let record = undefined;
 
 		if(!options){
 			options = {};
 		}
 
-		if(options && options.className && options.className === 'QBRecord'){
-			record = options;
+		if(options.className && options.className === 'QBRecord'){
+			if(options.get('recordid')){
+				record = this.getRecord(options.get('recordid'), 'recordid');
+			}else
+			if(options.get('primaryKey')){
+				record = this.getRecord(options.get('primaryKey'), 'primaryKey');
+			}
 
-			this._data.records.push(record);
+			if(record){
+				_upsertRecord();
+			}else{
+				record = options;
+
+				this._data.records.push(record);
+			}
 		}else{
-			const _upsertRecord = () => {
-				Object.keys(options).forEach((name) => {
-					record.set(name, options[name]);
-				});
-
-				record._fields = this.getFields();
-				record._meta.name = this._data.name;
-			};
-
 			if(options.recordid){
 				record = this.getRecord(options.recordid, 'recordid');
 			}else
