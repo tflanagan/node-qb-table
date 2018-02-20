@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 10;
-const VERSION_PATCH = 6;
+const VERSION_PATCH = 7;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -592,7 +592,7 @@ class QBTable {
 			}
 
 			if(record){
-				_upsertRecord();
+				_upsertRecord(true);
 			}else{
 				record = options;
 
