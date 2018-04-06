@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 11;
-const VERSION_PATCH = 0;
+const VERSION_PATCH = 1;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -443,7 +443,7 @@ class QBTable {
 	save(individually, fidsToSave, recordsToSave){
 		if(individually){
 			return QuickBase.Promise.map(this.getRecords(), (record) => {
-				return record.savef(idsToSave);
+				return record.save(fidsToSave);
 			}).then(() => {
 				return this;
 			});
