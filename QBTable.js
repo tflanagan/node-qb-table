@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 11;
-const VERSION_PATCH = 1;
+const VERSION_PATCH = 2;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -441,8 +441,10 @@ class QBTable {
 	};
 
 	save(individually, fidsToSave, recordsToSave){
+		const records = recordsToSave === undefined ? this.getRecords() : recordsToSave;
+
 		if(individually){
-			return QuickBase.Promise.map(this.getRecords(), (record) => {
+			return QuickBase.Promise.map(records, (record) => {
 				return record.save(fidsToSave);
 			}).then(() => {
 				return this;
@@ -451,7 +453,6 @@ class QBTable {
 
 		const fids = this.getFids();
 		const names = Object.keys(fids);
-		const records = recordsToSave === undefined ? this.getRecords() : recordsToSave;
 
 		const key = fids.recordid === fids.primaryKey ? fids.recordid : fids.primaryKey;
 
