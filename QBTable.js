@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 11;
-const VERSION_PATCH = 2;
+const VERSION_PATCH = 3;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -58,7 +58,7 @@ class QBTable {
 			queries: []
 		};
 
-		if(options && options.quickbase.className && options.quickbase.className === 'QuickBase'){
+		if(options && options.quickbase && ((options.quickbase.className && options.quickbase.className === 'QuickBase') || typeof(options.quickbase.api) === 'function')){
 			this._qb = options.quickbase;
 
 			delete options.quickbase
