@@ -51,6 +51,8 @@ class QBTable {
 		this._nRecords = false;
 		this._data = {
 			name: '',
+			timezone: '',
+			dateFormat: '',
 			fields: [],
 			original: {},
 			records: [],
@@ -82,6 +84,8 @@ class QBTable {
 	clear(){
 		this._data = {
 			name: '',
+			timezone: '',
+			dateFormat: '',
 			fields: [],
 			chdbids: [],
 			original: {},
@@ -151,6 +155,10 @@ class QBTable {
 
 	getAppID(){
 		return this._data.original.app_id;
+	};
+
+	getDateFormat(){
+		return this._data.dateFormat;
 	};
 
 	getDBID(){
@@ -265,6 +273,10 @@ class QBTable {
 		return this._data.name;
 	};
 
+	getTimezone(){
+		return this._data.timezone;
+	};
+
 	getVariable(name){
 		return this._data.variables[name];
 	};
@@ -365,9 +377,14 @@ class QBTable {
 		};
 
 		if(!preserve){
+			const timezone = this._data.timezone;
+			const dateFormat = this._data.dateFormat;
+
 			this._data = results.table;
 
 			this._data.records = this._data.records.map(prepareNewRecord);
+			this._data.timezone = timezone;
+			this._data.dateFormat = dateFormat;
 		}else{
 			this._data.name = results.table.name;
 			this._data.original = results.table.original;
@@ -431,6 +448,8 @@ class QBTable {
 			this._data = results.table;
 
 			this._data.records = records;
+			this._data.timezone = results.time_zone;
+			this._data.dateFormat = results.date_format;
 
 			if(this._nRecords !== false && this._data.records.length !== 0){
 				this._nRecords = false;
