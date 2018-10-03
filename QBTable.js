@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 12;
-const VERSION_PATCH = 2;
+const VERSION_PATCH = 3;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -513,8 +513,7 @@ class QBTable {
 				}
 
 				if(typeof(value) === 'string' && value.match(/^[0-9]{8}\.[a-z0-9]{4}$/)){
-					// Do nothing. This is a user id, Quick Base cannot handle
-					// this value wrapped in quotes like other strings.
+					value = '<' + value + '>';
 				}else{
 					value = val2csv(value);
 				}
