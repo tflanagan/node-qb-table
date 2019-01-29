@@ -2,8 +2,8 @@
 
 /* Versioning */
 const VERSION_MAJOR = 1;
-const VERSION_MINOR = 12;
-const VERSION_PATCH = 3;
+const VERSION_MINOR = 13;
+const VERSION_PATCH = 0;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -597,6 +597,12 @@ class QBTable {
 		return this;
 	};
 
+	toJson(fidsToConvert){
+		return this.getRecords().map((record) => {
+			return record.toJson(fidsToConvert);
+		});
+	};
+
 	upsertRecord(options, autoSave){
 		const _upsertRecord = (isRecord) => {
 			Object.keys(isRecord ? options.getFids() : options).forEach((name) => {
@@ -660,6 +666,20 @@ class QBTable {
 		return QuickBase.Promise.resolve(record);
 	};
 
+	upsertRecords(records, autoSave, individually){
+		return QuickBase.Promise.map(records, (record) => {
+			return this.upsertRecord(record);
+		}).then((newRecords) => {
+			if(!autoSave){
+				return newRecords;
+			}
+
+			return this.save(individually, false, newRecords).then(() => {
+				return newRecords;
+			});
+		});
+	};
+
 }
 
 /* Expose Static Methods */
@@ -678,6 +698,12 @@ QBTable.NewRecord = function(table, options){
 	});
 
 	return record;
+};
+
+QBTable.NewRecords = function(table, records){
+	return records.map((record) => {
+		return QBTable.NewRecord(table, record);
+	});
 };
 
 /* Helpers */
