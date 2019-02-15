@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 13;
-const VERSION_PATCH = 3;
+const VERSION_PATCH = 4;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -531,7 +531,7 @@ class QBTable {
 			clist: clist,
 			records_csv: csv
 		}).then((results) => {
-			if(results.rids.length > 0){
+			if(results.rids && results.rids.length > 0){
 				const now = Date.now();
 
 				records.forEach((record, i) => {
