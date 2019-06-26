@@ -1,7 +1,7 @@
 {
   "name": "qb-table",
   "private": false,
-  "version": "1.13.5",
+  "version": "1.13.6",
   "description": "A lightweight abstraction layer for QuickBase",
   "keywords": [
     "QuickBase",
@@ -39,16 +39,14 @@
     "url": "git@github.com:tflanagan/node-qb-table.git"
   },
   "scripts": {
-    "build": "gulp build"
+    "build": "node build.js"
   },
   "dependencies": {
-    "quickbase": "^2.10.3",
-    "qb-record": "^1.5.4",
+    "quickbase": "^2.10.4",
+    "qb-record": "^1.5.5",
     "lodash.merge": "^4.6.1"
   },
   "devDependencies": {
-    "gulp": "^3.9.1",
-    "gulp-cli": "^1.2.1",
     "babel-cli": "^6.24.1",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-react": "^6.24.1",
