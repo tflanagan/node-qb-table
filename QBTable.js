@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 1;
 const VERSION_MINOR = 13;
-const VERSION_PATCH = 5;
+const VERSION_PATCH = 7;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -786,6 +786,6 @@ if(typeof define === 'function' && define.amd){
 	});
 }
 
-if(typeof global !== 'undefined' && typeof window !== 'undefined' && global === window){
-	global.QBTable = QBTable;
+if((typeof global !== 'undefined' && typeof window !== 'undefined' && global === window) || (typeof global === 'undefined' && typeof window !== 'undefined')){
+	(global || window).QBTable = QBTable;
 }
