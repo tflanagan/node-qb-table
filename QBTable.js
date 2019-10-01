@@ -7,6 +7,7 @@ const VERSION_PATCH = 8;
 
 /* Dependencies */
 const merge = require('lodash.merge');
+const QBField = require('qb-field');
 const QBRecord = require('qb-record');
 const QuickBase = require('quickbase');
 
@@ -200,13 +201,16 @@ class QBTable {
 
 	getField(id){
 		const fields = this.getFields();
-		const i = indexOfObj(fields, 'id', +id);
 
-		if(i === -1){
-			return undefined;
+		let i = 0, result = undefined;
+
+		for(; result === undefined && i < fields.length; ++i){
+			if(fields[i].getFid() === id){
+				result = fields[i];
+			}
 		}
 
-		return fields[i];
+		return result;
 	};
 
 	getFields(){
@@ -382,6 +386,14 @@ class QBTable {
 
 			this._data = results.table;
 
+			this._data.fields = this._data.fields.map((field) => {
+				return QBField.NewField({
+					quickbase: this._qb,
+					dbid: this.getDBID(),
+					fid: +field.id
+				}, field);
+			});
+
 			this._data.records = this._data.records.map(prepareNewRecord);
 			this._data.timezone = timezone;
 			this._data.dateFormat = dateFormat;
@@ -393,15 +405,29 @@ class QBTable {
 			const l = this._data.fields.length;
 
 			results.table.fields.forEach((field) => {
-				for(let i = 0; i < l; ++i){
-					if(this._data.fields[i].id === field.id){
-						this._data.fields[i] = field;
+				const fid = +field.id;
 
-						return;
+				let result = undefined;
+
+				for(let i = 0; result === undefined && i < this._data.fields.length; ++i){
+					if(this._data.fields[i].getFid() === fid){
+						result = this._data.fields[i];
 					}
 				}
 
-				this._data.fields.push(field);
+				if(!result){
+					result = new QBField({
+						quickbase: this._qb,
+						dbid: this.getDBID(),
+						fid: fid
+					});
+
+					this._data.fields.push(result);
+				}
+
+				Object.keys(field).forEach((attribute) => {
+					result.set(attribute, field[attribute]);
+				});
 			});
 
 			results.table.records.forEach((data) => {
@@ -446,6 +472,14 @@ class QBTable {
 			const records = this._data.records;
 
 			this._data = results.table;
+
+			this._data.fields = this._data.fields.map((field) => {
+				return QBField.NewField({
+					quickbase: this._qb,
+					dbid: this.getDBID(),
+					fid: +field.id
+				}, field);
+			});
 
 			this._data.records = records;
 			this._data.timezone = results.time_zone;
@@ -605,12 +639,37 @@ class QBTable {
 
 	upsertRecord(options, autoSave){
 		const _upsertRecord = (isRecord) => {
-			Object.keys(isRecord ? options.getFids() : options).forEach((name) => {
-				record.set(name, isRecord ? options.get(name) : options[name]);
-			});
-
 			record._fields = this.getFields();
 			record._meta.name = this._data.name;
+
+			Object.keys(record.getFids()).forEach((name) => {
+				let value;
+
+				const fid = record.getFid(name);
+
+				if(fid !== -1){
+					const field = record.getField(fid);
+
+					if(field){
+						value = field.get('default_value');
+					}
+				}
+
+				record.set(name, value);
+			});
+
+			Object.keys(isRecord ? options.getFids() : options).forEach((name) => {
+				let value = record.get(name);
+
+				if(isRecord){
+					value = options.get(name);
+				}else
+				if(options.hasOwnProperty(name)){
+					value = options[name];
+				}
+
+				record.set(name, value);
+			});
 		};
 
 		let record = undefined;
@@ -693,6 +752,22 @@ QBTable.NewRecord = function(table, options){
 	record._fields = table.getFields();
 	record._meta.name = table.getTableName();
 
+	Object.keys(record.getFids()).forEach((name) => {
+		let value;
+
+		const fid = record.getFid(name);
+
+		if(fid !== -1){
+			const field = record.getField(fid);
+
+			if(field){
+				value = field.get('default_value');
+			}
+		}
+
+		record.set(name, value);
+	});
+
 	Object.keys(options).forEach((name) => {
 		record.set(name, options[name]);
 	});
@@ -707,46 +782,6 @@ QBTable.NewRecords = function(table, records){
 };
 
 /* Helpers */
-const indexOfObj = function(obj, key, value){
-	if(typeof(obj) !== 'object'){
-		return -1;
-	}
-
-	let result,  i = 0, o = 0, k = 0;
-	const l = obj.length;
-
-	for(; i < l; ++i){
-		if(typeof(key) === 'object'){
-			result = new Array(key.length);
-			result = setAll(result, false);
-
-			for(o = 0, k = result.length; o < k; ++o){
-				if(obj[i][key[o]] === value[o]){
-					result[o] = true;
-				}
-			}
-
-			if(result.indexOf(false) === -1){
-				return i;
-			}
-		}else{
-			if(obj[i][key] === value){
-				return i;
-			}
-		}
-	}
-
-	return -1;
-};
-
-const setAll = function(arr, value){
-	for(let i = 0; i < arr.length; ++i){
-		arr[i] = value;
-	}
-
-	return arr;
-};
-
 const val2csv = function(val){
 	if(!val){
 		return val;
