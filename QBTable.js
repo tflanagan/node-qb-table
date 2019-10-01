@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 2;
 const VERSION_MINOR = 1;
-const VERSION_PATCH = 0;
+const VERSION_PATCH = 1;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -519,10 +519,10 @@ class QBTable {
 				'summary',
 				'virtual',
 				'lookup'
-			].indexOf(field.mode) !== -1 || field.hasOwnProperty('snapfid') || [
+			].indexOf(field.get('mode')) !== -1 || field.get('snapfid') || [
 				'ICalendarButton',
 				'vCardButton'
-			].indexOf(field.field_type) !== -1)) || (fidsToSave && fidsToSave.indexOf(id) === -1 && fidsToSave.indexOf(name) === -1)){
+			].indexOf(field.get('field_type')) !== -1)) || (fidsToSave && fidsToSave.indexOf(id) === -1 && fidsToSave.indexOf(name) === -1)){
 				return;
 			}
 
@@ -566,17 +566,15 @@ class QBTable {
 			records_csv: csv
 		}).then((results) => {
 			if(results.rids && results.rids.length > 0){
-				const now = Date.now();
-
 				records.forEach((record, i) => {
 					if(fids.dateCreated && !record.get('recordid')){
-						record.set('dateCreated', now);
+						record.set('dateCreated', results.rids[i].update_id);
 					}
 
 					record.set('recordid', results.rids[i].rid);
 
 					if(fids.dateModified){
-						record.set('dateModified', now);
+						record.set('dateModified', results.rids[i].update_id);
 					}
 				});
 			}
