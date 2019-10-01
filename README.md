@@ -193,6 +193,32 @@ Sets the internally stored `query` as `query`.
 
 Sets the internally stored `slist` as `slist`.
 
+#### `.upsertField(options, autoSave)`
+ - `options`: obj, required
+ - `autoSave`: boolean, default: `true`
+
+Inserts the passed in `options` as a new QBRecord instance in the interal
+records array. If the `options` object has a `recordid` key and value pair,
+and a QBRecord instance with the same value exists, then it will update the
+internally stored QBRecord rather than inserting a new one.
+
+If `autoSave` is `true`, then it will execute an API_AddField if no fid is
+defined, then an API_EditFieldProperties, and if required an
+API_FieldAddChoices and/or API_FieldRemoveChoices.
+
+#### `.upsertFields(fields, autoSave)`
+ - `fields`: arr, required
+ - `autoSave`: boolean, default: `true`
+
+Inserts the passed in `fields` as new QBField instances in the interal
+fields array. If the `field` objects withing `fields` has a `fid` or `id` key
+and value pair, and a QBField instance with the same value exists, then it
+will update the internally stored QBField rather than inserting a new one.
+
+If `autoSave` is `true`, then it will execute, for each `field`, an
+API_AddField if no fid is defined, then an API_EditFieldProperties, and if
+required an API_FieldAddChoices and/or API_FieldRemoveChoices.
+
 #### `.upsertRecord(options, autoSave)`
  - `options`: obj, required
  - `autoSave`: boolean, default: `false`
@@ -204,6 +230,24 @@ internally stored QBRecord rather than inserting a new one.
 
 If `autoSave` is `true`, then it will execute an API_AddRecord or
 API_EditRecord.
+
+#### `.upsertRecords(records, autoSave, individually)`
+ - `records`: arr, required
+ - `autoSave`: boolean, default: `false`
+ - `individually`: boolean, defaults to false
+
+Inserts the passed in `records` as new QBRecord instances in the interal
+records array. If the `record` objects withing `records` has a `recordid` key
+and value pair, and a QBRecord instance with the same value exists, then it
+will update the internally stored QBRecord rather than inserting a new one.
+
+If `autoSave` is `true`, then it will execute an API_AddRecord or
+API_EditRecord or API_ImportFromCSV depending on `individually`.
+
+If `individually` is `true`, then it executes an API_AddRecord or
+API_EditRecord for each locally loaded QBRecord.
+If `individually` is `false`, then it executes an API_ImportFromCSV which
+includes every locally loaded QBRecord.
 
 ### Static Methods
 -------

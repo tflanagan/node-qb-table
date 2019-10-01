@@ -1,9 +1,9 @@
 'use strict';
 
 /* Versioning */
-const VERSION_MAJOR = 1;
-const VERSION_MINOR = 13;
-const VERSION_PATCH = 8;
+const VERSION_MAJOR = 2;
+const VERSION_MINOR = 1;
+const VERSION_PATCH = 0;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -634,6 +634,48 @@ class QBTable {
 	toJson(fidsToConvert){
 		return this.getRecords().map((record) => {
 			return record.toJson(fidsToConvert);
+		});
+	};
+
+	upsertField(options, autoSave){
+		const fid = options.fid || options.id || -1;
+
+		let field, found = false;
+
+		if(fid !== -1){
+			field = this.getField(fid);
+
+			if(field){
+				found = true;
+			}
+		}
+
+		if(!field){
+			field = new QBField({
+				quickbase: this._qb,
+				dbid: this.getDBID,
+				fid: fid
+			});
+		}
+
+		Object.keys(options).forEach((attribute) => {
+			field.set(attribute, options[attribute]);
+		});
+
+		if(!found){
+			this._data.fields.push(field);
+		}
+
+		if(autoSave === false || field.getFid() !== -1){
+			return QuickBase.Promise.resolve(field);
+		}
+
+		return field.save();
+	};
+
+	upsertFields(fields, autoSave){
+		return QuickBase.Promise.map(fields, (record) => {
+			return this.upsertField(field, autoSave);
 		});
 	};
 
