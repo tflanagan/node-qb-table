@@ -371,12 +371,18 @@ class QBTable {
 		};
 
 		const upsertData = (record, data) => {
-			Object.keys(fids).forEach((fid) => {
-				if(localClist && (returnedClist[0] !== 'a' && returnedClist.indexOf(fids[fid]) === -1)){
-					return;
+			Object.keys(fids).filter((fidName) => {
+				return !localClist || returnedClist[0] === 'a' || returnedClist.indexOf(fids[fidName]) === -1;
+			}).forEach((fidName) => {
+				const fid = +fids[fidName];
+				const field = this.getField(fid);
+				let value = data[fids[fidName]];
+
+				if(field){
+					value = QBField.ParseValue(field, value);
 				}
 
-				record.set(fid, data[fids[fid]]);
+				record.set(fidName, value);
 			});
 		};
 
@@ -522,7 +528,7 @@ class QBTable {
 			].indexOf(field.get('mode')) !== -1 || field.get('snapfid') || [
 				'ICalendarButton',
 				'vCardButton'
-			].indexOf(field.get('field_type')) !== -1)) || (fidsToSave && fidsToSave.indexOf(id) === -1 && fidsToSave.indexOf(name) === -1)){
+			].indexOf(field.get('field_type')) !== -1 || field.get('field_type') === 'file')) || (fidsToSave && fidsToSave.indexOf(id) === -1 && fidsToSave.indexOf(name) === -1)){
 				return;
 			}
 
@@ -535,19 +541,31 @@ class QBTable {
 
 		const csv = records.reduce((csv, record) => {
 			return csv.concat(clist.reduce((row, fid) => {
+				fid = +fid;
+
 				const name = this.getFid(fid, true);
+				const field = this.getField(fid);
+
 				let value = record.get(name);
 
-				if(value === null){
+				if([
+					undefined,
+					null
+				].indexOf(value) !== -1){
 					value = '';
 				}
 
-				if(value instanceof Array){
-					value = value.join(';');
+				if(typeof(value) === 'object' && value.filename){
+					value = '';
+				}else
+				if(field){
+					value = QBField.FormatValue(field, value);
 				}
 
-				if(typeof(value) === 'string' && value.match(/^[0-9]{8}\.[a-z0-9]{4}$/)){
-					value = '<' + value + '>';
+				if(typeof(value) === 'string' && value.match(/^(;?[0-9]{8}\.[a-z0-9]{4};?)+$/)){
+					value = value.split(';').map((part) => {
+						return '<' + part + '>';
+					}).join(';');
 				}else{
 					value = val2csv(value);
 				}
