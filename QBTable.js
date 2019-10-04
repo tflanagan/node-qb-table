@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 2;
 const VERSION_MINOR = 1;
-const VERSION_PATCH = 4;
+const VERSION_PATCH = 5;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -562,7 +562,7 @@ class QBTable {
 					value = QBField.FormatValue(field, value);
 				}
 
-				if(typeof(value) === 'string' && value.match(/^(;?[0-9]{8}\.[a-z0-9]{4};?)+$/)){
+				if(typeof(value) === 'string' && value.match(/^(;?[0-9]{1,9}\.[a-z0-9]{4};?)+$/)){
 					value = value.split(';').map((part) => {
 						return '<' + part + '>';
 					}).join(';');
