@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 2;
 const VERSION_MINOR = 1;
-const VERSION_PATCH = 11;
+const VERSION_PATCH = 12;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -304,7 +304,9 @@ class QBTable {
 		const fids = this.getFids();
 		const options = {
 			dbid: dbid,
-			clist: localClist || Object.keys(fids).map((fid) => {
+			clist: localClist || Object.keys(fids).filter((fidName) => {
+				return fids[fidName] !== 'object';
+			}).map((fid) => {
 				return fids[fid];
 			}),
 			slist: localSlist || this.getSList(),
@@ -372,7 +374,7 @@ class QBTable {
 
 		const upsertData = (record, data) => {
 			Object.keys(fids).filter((fidName) => {
-				return !localClist || returnedClist[0] === 'a' || returnedClist.indexOf(fids[fidName]) === -1;
+				return fids[fidName] !== 'object' && (!localClist || returnedClist[0] === 'a' || returnedClist.indexOf(fids[fidName]) === -1);
 			}).forEach((fidName) => {
 				const fid = +fids[fidName];
 				const field = this.getField(fid);
@@ -511,13 +513,14 @@ class QBTable {
 		}
 
 		const fids = this.getFids();
-		const names = Object.keys(fids);
 
 		const key = fids.recordid === fids.primaryKey ? fids.recordid : fids.primaryKey;
 
 		let clist = [ key ];
 
-		names.forEach((name) => {
+		Object.keys(fids).filter((fidName) => {
+			return fids[fidName] !== 'object';
+		}).forEach((name) => {
 			const id = fids[name];
 			const field = this.getField(id);
 
@@ -612,7 +615,15 @@ class QBTable {
 	};
 
 	setFid(name, id){
-		this._fids[name] = +id;
+		if(typeof(id) === 'object'){
+			this._fids[name] = id;
+
+			Object.keys(id).forEach((key, i) => {
+				this._fids[('' + name) + (i + 1)] = +id[key];
+			});
+		}else{
+			this._fids[name] = +id;
+		}
 
 		this.getRecords().forEach((record) => {
 			record.setFid(name, id);
@@ -700,7 +711,9 @@ class QBTable {
 			record._fields = this.getFields();
 			record._meta.name = this._data.name;
 
-			Object.keys(record.getFids()).forEach((name) => {
+			Object.keys(record.getFids()).filter((fidName) => {
+				return record.getFid(fidName) !== 'object';
+			}).forEach((name) => {
 				let value;
 
 				const fid = record.getFid(name);
@@ -716,7 +729,11 @@ class QBTable {
 				record.set(name, value);
 			});
 
-			Object.keys(isRecord ? options.getFids() : options).forEach((name) => {
+			const fids = isRecord ? options.getFids() : options;
+
+			Object.keys(fids).filter((fidName) => {
+				return typeof(fids[fidName]) !== 'object';
+			}).forEach((name) => {
 				let value = record.get(name);
 
 				if(isRecord){
@@ -810,7 +827,9 @@ QBTable.NewRecord = function(table, options){
 	record._fields = table.getFields();
 	record._meta.name = table.getTableName();
 
-	Object.keys(record.getFids()).forEach((name) => {
+	Object.keys(record.getFids()).filter((fidName) => {
+		return record.getFid(fidName) !== 'object';
+	}).forEach((name) => {
 		let value;
 
 		const fid = record.getFid(name);
