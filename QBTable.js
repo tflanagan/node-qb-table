@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 2;
 const VERSION_MINOR = 1;
-const VERSION_PATCH = 12;
+const VERSION_PATCH = 13;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -732,7 +732,7 @@ class QBTable {
 			const fids = isRecord ? options.getFids() : options;
 
 			Object.keys(fids).filter((fidName) => {
-				return typeof(fids[fidName]) !== 'object';
+				return !isRecord || typeof(fids[fidName]) !== 'object';
 			}).forEach((name) => {
 				let value = record.get(name);
 
