@@ -2,8 +2,8 @@
 
 /* Versioning */
 const VERSION_MAJOR = 2;
-const VERSION_MINOR = 1;
-const VERSION_PATCH = 14;
+const VERSION_MINOR = 2;
+const VERSION_PATCH = 0;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -289,7 +289,7 @@ class QBTable {
 		return this._data.variables;
 	};
 
-	load(localQuery, localClist, localSlist, localOptions, preserve, returnRaw){
+	load(localQuery, localClist, localSlist, localOptions, preserve, returnRaw, ignoreDefaultQuery){
 		if(typeof(localQuery) === 'object'){
 			returnRaw = localSlist;
 			preserve = localClist;
@@ -298,6 +298,7 @@ class QBTable {
 			localSlist = localQuery.slist;
 			localClist = localQuery.clist;
 			localQuery = localQuery.query;
+			ignoreDefaultQuery = localQuery.ignoreDefaultQuery;
 		}
 
 		const dbid = this.getDBID();
@@ -314,7 +315,7 @@ class QBTable {
 			includeRids: true
 		};
 
-		if(this.getQuery()){
+		if(this.getQuery() && !ignoreDefaultQuery){
 			if(localQuery){
 				localQuery += 'AND(' + this.getQuery() + ')';
 			}else{
@@ -454,8 +455,8 @@ class QBTable {
 		return this.getRecords();
 	};
 
-	loadNRecords(localQuery){
-		if(this.getQuery()){
+	loadNRecords(localQuery, ignoreDefaultQuery){
+		if(this.getQuery() && !ignoreDefaultQuery){
 			if(localQuery){
 				localQuery += 'AND(' + this.getQuery() + ')';
 			}else{
