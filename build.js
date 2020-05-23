@@ -1,30 +1,150 @@
-'use strict';
+#!/usr/bin/env node
 
 /* Dependencies */
-const exec = require('child_process').exec;
-const join = require('path').join;
+const fs = require('fs');
+const minify = require('minify');
+const execNode = require('child_process').exec;
+const Browserify = require('browserify');
+const { transpileModule } = require('typescript');
 
-/* Constants */
-const BABEL = join('.', 'node_modules', 'babel-cli', 'bin', 'babel.js');
-const BROWSERIFY = join('.', 'node_modules', 'browserify', 'bin', 'cmd.js');
+/* Helpers */
+const browserify = async (files, options) => {
+	return new Promise((resolve, reject) => {
+		const b = new Browserify(files, options);
 
-const SRC_FILE = join('.', 'QBTable.js');
-const ES5_FILE = join('.', 'QBTable.es5.js');
-const BROWSERIFY_FILE = join('.', 'QBTable.browserify.js');
-const MINIFIED_FILE = join('.', 'QBTable.browserify.min.js');
+		b.bundle((err, src) => {
+			if(err){
+				return reject(err);
+			}
 
-/* Main */
-return new Promise((resolve, reject) => {
-	exec([
-		'node ' + BROWSERIFY + ' ' + SRC_FILE + ' > ' + BROWSERIFY_FILE,
-		'node ' + BABEL + ' --presets es2015 ' + BROWSERIFY_FILE + ' > ' + ES5_FILE,
-		'minify ' + ES5_FILE + ' > ' + MINIFIED_FILE,
-		'rm ' + ES5_FILE,
-		'rm ' + BROWSERIFY_FILE
-	].join(' && '), (err, stdout, stderr) => {
-		if (err)
-			return reject(new Error(err));
-
-		return resolve();
+			resolve(src);
+		});
 	});
-});
+};
+
+const exec = async (cmd) => {
+	return new Promise((resolve, reject) => {
+		execNode(cmd, (err, stdout, stderr) => {
+			if(err){
+				err.stdout = stdout;
+				err.stderr = stderr;
+
+				return reject(err);
+			}
+
+			if(stderr && !stderr.match(/ExperimentalWarning/)){
+				err = new Error('Command failed: ' + cmd);
+
+				err.stdout = stdout;
+				err.stderr = stderr;
+
+				return reject(err);
+			}
+
+			resolve(stdout);
+		});
+	});
+};
+
+const readFile = async (path) => {
+	return new Promise((resolve, reject) => {
+		fs.readFile(path, (err, buffer) => {
+			if(err){
+				return reject(err);
+			}
+
+			resolve(buffer);
+		});
+	});
+};
+
+const writeFile = async (path, data) => {
+	return new Promise((resolve, reject) => {
+		fs.writeFile(path, data, (err) => {
+			if(err){
+				return reject(err);
+			}
+
+			resolve();
+		});
+	});
+};
+
+/* Build */
+(async () => {
+	try {
+		let searchStr, searchRgx;
+
+		console.log('Compiling TypeScript for Node...');
+		await exec('npx tsc');
+
+		console.log('Injecting Promise polyfill...');
+		const source = await readFile('./dist/qb-table.js');
+
+		searchStr = 'const deepmerge_1 =';
+		searchRgx = new RegExp(searchStr);
+
+		await writeFile('./dist/qb-table.prep.js', source.toString().replace(searchRgx, [
+			'const Promise = require(\'bluebird\');',
+			'if(!global.Promise){ global.Promise = Promise; }',
+			searchStr
+		].join('\n')));
+
+		console.log('Browserify...');
+		const browserifiedPrep = await browserify([
+			'./dist/qb-table.prep.js'
+		]);
+
+		console.log('Compiling for Browser...');
+		const browserified = transpileModule(browserifiedPrep.toString(), {
+			compilerOptions: {
+				target: 'ES5',
+				module: 'commonjs',
+				lib: [
+					'dom',
+					'ES6'
+				],
+				allowJs: true,
+				checkJs: false,
+				sourceMap: false,
+				declaration: false,
+				removeComments: true
+			}
+		});
+
+		await writeFile('./dist/qb-table.browserify.js', browserified.outputText);
+
+		console.log('Minify...');
+		const results = await minify('./dist/qb-table.browserify.js');
+		const license = await readFile('./LICENSE');
+
+		searchStr = '"use strict";var i=this&&this.__importDefault';
+		searchRgx = new RegExp(searchStr);
+
+		await writeFile('./dist/qb-table.browserify.min.js', results.toString().replace(searchRgx, [
+			license.toString().split('\n').map((line, i, lines) => {
+				line = ' * ' + line;
+
+				if(i === 0){
+					line = '\n/*!\n' + line;
+				}else
+				if(i === lines.length - 1){
+					line += '\n*/';
+				}
+
+				return line;
+			}).join('\n'),
+			searchStr.replace(/\\/g, '')
+		].join('\n')));
+
+		console.log('Cleanup...');
+		await exec([
+			'rm ./dist/qb-table.prep.js',
+			'rm ./dist/qb-table.browserify.js'
+		].join(' && '));
+
+		console.log('Done building.');
+	}catch(err){
+		console.error(err);
+	}
+})();
