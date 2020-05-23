@@ -409,6 +409,7 @@ export class QBTable {
 		return this._data;
 	}
 
+	async runQuery(): Promise<QBTableRunQueryResponse>;
 	async runQuery({ where, select, sortBy, groupBy, options }: QBTableRunQuery): Promise<QBTableRunQueryResponse>;
 	async runQuery(where?: string | QBTableRunQuery, select?: number[], sortBy?: { fieldId?: number; order?: string; }[], groupBy?: { fieldId?: number; by?: 'string'; }[], options?: { skip?: number, top?: number }): Promise<QBTableRunQueryResponse>{
 		if(typeof(where) === 'object'){
@@ -555,7 +556,7 @@ export class QBTable {
 			const selectedNames = names.filter((name) => {
 				const fid = fids[name];
 	
-				return !fidsToSave || fidsToSave.indexOf(fid) !== -1 || fidsToSave.indexOf(name) !== -1;
+				return !fidsToSave || fidsToSave.indexOf(fid) !== -1 || fidsToSave.indexOf(name) !== -1 || fid === ridFid;
 			});
 
 			const results = await this._qb.upsertRecords({
