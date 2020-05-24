@@ -33,17 +33,17 @@ export class QBTable {
 		quickbase: {
 			realm: IS_BROWSER ? window.location.host.split('.')[0] : ''
 		},
-	
+
 		appId: '',
 		dbid: (() => {
 			if(IS_BROWSER){
 				const dbid = window.location.pathname.match(/^\/db\/(?!main)(.*)$/);
-	
+
 				if(dbid){
 					return dbid[1];
 				}
 			}
-	
+
 			return '';
 		})(),
 		fids: {
@@ -72,7 +72,7 @@ export class QBTable {
 			delete options.quickbase;
 
 			const settings = merge(QBRecord.defaults, options || {});
-			
+
 			this.setAppId(settings.appId)
 				.setDBID(settings.dbid)
 				.setFids(settings.fids);
@@ -106,7 +106,7 @@ export class QBTable {
 
 	async deleteRecord(record: QBRecord): Promise<QuickBaseResponseDeleteRecords> {
 		let i = -1;
-		
+
 		this.getRecords().some((r, o) => {
 			if(record.id === r.id || (record.get('recordid') && record.get('recordid') === r.get('recordid'))){
 				i = o;
@@ -155,7 +155,7 @@ export class QBTable {
 			if(records === undefined){
 				records = this._records.splice(0, this._records.length);
 			}
-			
+
 			// TODO: how to handle multiple deletes at once
 		}
 
@@ -183,7 +183,7 @@ export class QBTable {
 	getAppId(): string {
 		return this._appId;
 	}
-	
+
 	getDBID(): string {
 		return this._dbid;
 	}
@@ -346,7 +346,7 @@ export class QBTable {
 					dbid: this.getDBID(),
 					reportId: report
 				});
-	
+
 				// @ts-ignore
 				report._fids = this.getFids();
 
@@ -419,7 +419,7 @@ export class QBTable {
 			select = where.select;
 			where = where.where;
 		}
-		
+
 		const fids = this.getFids();
 		const names = Object.keys(fids);
 
@@ -485,7 +485,7 @@ export class QBTable {
 
 			//@ts-ignore
 			qbRecord._fields = fields;
-			
+
 			selectedNames.forEach((name) => {
 				const fid = selectedFids[name];
 
@@ -512,7 +512,7 @@ export class QBTable {
 					dbid: this.getDBID(),
 					reportId: report
 				});
-	
+
 				// @ts-ignore
 				report._fids = this.getFids();
 			}
@@ -542,7 +542,7 @@ export class QBTable {
 			fidsToSave = individually.fidsToSave;
 			individually = individually.individually || false;
 		}
-		
+
 		const records = recordsToSave === undefined ? this.getRecords() : recordsToSave;
 
 		if(individually){
@@ -555,7 +555,7 @@ export class QBTable {
 			const names = Object.keys(fids);
 			const selectedNames = names.filter((name) => {
 				const fid = fids[name];
-	
+
 				return !fidsToSave || fidsToSave.indexOf(fid) !== -1 || fidsToSave.indexOf(name) !== -1 || fid === ridFid;
 			});
 
@@ -567,8 +567,10 @@ export class QBTable {
 						const fid = fids[name];
 
 						if(fid){
+							const value = qbRecord.get(name);
+
 							record[fid] = {
-								value: qbRecord.get(name)
+								value: value === undefined ? '' : value
 							};
 						}
 
@@ -611,7 +613,7 @@ export class QBTable {
 		});
 
 		let results: any;
-	
+
 		if(tableId){
 			data.tableId = tableId;
 
@@ -739,7 +741,7 @@ export class QBTable {
 
 	async upsertRecord(options: QBRecord | QBRecordJSON['data'], autoSave: boolean = false): Promise<QBRecord> {
 		let record: QBRecord | undefined;
-		
+
 		if(options instanceof QBRecord){
 			if(options.get('recordid')){
 				record = this.getRecord(options.get('recordid'), 'recordid');
