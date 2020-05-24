@@ -763,6 +763,8 @@ export class QBTable {
 				dbid: this.getDBID(),
 				fids: this.getFids()
 			});
+
+			this._records.push(record);
 		}
 
 		//@ts-ignore
