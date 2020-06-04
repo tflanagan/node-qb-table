@@ -297,8 +297,8 @@ class QBTable {
 			localOptions = localQuery.options;
 			localSlist = localQuery.slist;
 			localClist = localQuery.clist;
-			localQuery = localQuery.query;
 			ignoreDefaultQuery = localQuery.ignoreDefaultQuery;
+			localQuery = localQuery.query;
 		}
 
 		const dbid = this.getDBID();
