@@ -3,8 +3,8 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>QBTable - v3.0.0-alpha.1 | QBTable - v3.0.0-alpha.1</title>
-	<meta name="description" content="Documentation for QBTable - v3.0.0-alpha.1">
+	<title>QBTable - v3.0.0 | QBTable - v3.0.0</title>
+	<meta name="description" content="Documentation for QBTable - v3.0.0">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style type="text/css">/*! normalize.css v1.1.3 | MIT License | git.io/normalize */
 /* ==========================================================================
@@ -2692,7 +2692,7 @@ img {
 		<div class="container">
 			<div class="table-wrap">
 				<div class="table-cell">
-					<strong><a href="index.html">QBTable - v3.0.0-alpha.1</a></strong>
+					<strong><a href="index.html">QBTable - v3.0.0</a></strong>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -2731,7 +2731,7 @@ img {
 			<p><a href="https://www.npmjs.com/package/qb-table"><img src="https://img.shields.io/npm/l/qb-table.svg" alt="npm license"></a> <a href="https://www.npmjs.com/package/qb-table"><img src="https://img.shields.io/npm/v/qb-table.svg" alt="npm version"></a> <a href="https://www.npmjs.com/package/qb-table"><img src="https://img.shields.io/npm/dm/qb-table.svg" alt="npm downloads"></a></p>
 			<p>A lightweight, promise based abstraction layer for Quick Base Records</p>
 			<p>Written in TypeScript, targets Nodejs and the Browser</p>
-			<p>This library targets the new RESTful JSON-based API, not the old XML-based API. If you want to use the old XML-based API, then please use <a href="https://github.com/tflanagan/node-qb-table/tree/master/">v2.x</a> of this library.</p>
+			<p>This library targets the new RESTful JSON-based API, not the old XML-based API. If you want to use the old XML-based API, then please use <a href="https://github.com/tflanagan/node-qb-table/tree/v2.x/">v2.x</a> of this library.</p>
 			<pre><code>IE 11 Users, if you are receiving this error:
 XMLHttpRequest: Network Error 0x80070005, Access is denied.
 
@@ -2746,8 +2746,8 @@ In order to <span class="hljs-keyword">use</span> the <span class="hljs-keyword"
 			<a href="#install" id="install" style="color: inherit; text-decoration: none;">
 				<h2>Install</h2>
 			</a>
-			<pre><code><span class="hljs-comment"># Install alpha channel</span>
-$ <span class="hljs-built_in">npm</span> install qb-table@alpha</code></pre>
+			<pre><code># Install
+<span class="hljs-symbol">$</span> npm install qb-<span class="hljs-keyword">table</span></code></pre>
 			<a href="#documentation" id="documentation" style="color: inherit; text-decoration: none;">
 				<h2>Documentation</h2>
 			</a>
@@ -2768,7 +2768,10 @@ $ <span class="hljs-built_in">npm</span> install qb-table@alpha</code></pre>
 
 <span class="hljs-keyword">const</span> qbTable = <span class="hljs-keyword">new</span> QBTable({
     quickbase: quickbase,
-    dbid: <span class="hljs-string">'xxxxxxxxx'</span>
+    dbid: <span class="hljs-string">'xxxxxxxxx'</span>,
+    fids: {
+        name: <span class="hljs-number">6</span>
+    }
 });
 
 <span class="hljs-function">(<span class="hljs-params"><span class="hljs-keyword">async</span> (<span class="hljs-params"></span>) =&gt; {
@@ -2790,13 +2793,16 @@ $ <span class="hljs-built_in">npm</span> install qb-table@alpha</code></pre>
 
 <span class="hljs-keyword">var</span> qbTable = <span class="hljs-keyword">new</span> QBTable({
     <span class="hljs-attr">quickbase</span>: quickbase,
-    <span class="hljs-attr">dbid</span>: <span class="hljs-string">'xxxxxxxxx'</span>
+    <span class="hljs-attr">dbid</span>: <span class="hljs-string">'xxxxxxxxx'</span>,
+    <span class="hljs-attr">fids</span>: {
+        <span class="hljs-attr">name</span>: <span class="hljs-number">6</span>
+    }
 });
 
 <span class="hljs-comment">// Using a Temporary Token</span>
-quickbase.getTempToken().then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">results</span>)</span>{
-    quickbase.setTempToken(results.temporaryAuthorization);
-
+quickbase.getTempToken({
+    <span class="hljs-attr">dbid</span>: qbTable.getDBID()
+}).then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">results</span>)</span>{
     <span class="hljs-keyword">return</span> qbTable.load();
 }).then(<span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">results</span>)</span>{
     <span class="hljs-built_in">console</span>.log(results);
