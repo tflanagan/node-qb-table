@@ -8,7 +8,11 @@ import {
 	QuickBaseResponseDeleteTable,
 	QuickBaseResponseDeleteRecords,
 	QuickBaseResponseRunQuery,
-	QuickBaseRecord
+	QuickBaseRecord,
+	dateFormat,
+	QuickBaseGroupBy,
+	QuickBaseSortBy,
+	QuickBaseQueryOptions
 } from 'quickbase';
 import { QBField, QBFieldJSON, QBFieldAttribute } from 'qb-field';
 import { QBRecord, QBRecordJSON } from 'qb-record';
@@ -69,7 +73,7 @@ export class QBTable {
 		singleRecordName: '',
 		pluralRecordName: '',
 		timeZone: '',
-		dateFormat: '',
+		dateFormat: 'MM-DD-YYYY',
 		keyFieldId: 0,
 		nextFieldId: 0,
 		nextRecordId: 0,
@@ -113,7 +117,7 @@ export class QBTable {
 			singleRecordName: '',
 			pluralRecordName: '',
 			timeZone: '',
-			dateFormat: '',
+			dateFormat: 'MM-DD-YYYY',
 			keyFieldId: 0,
 			nextFieldId: 0,
 			nextRecordId: 0,
@@ -911,7 +915,7 @@ export interface QBTableData {
 	singleRecordName: string;
 	pluralRecordName: string;
 	timeZone: string;
-	dateFormat: string;
+	dateFormat: dateFormat;
 	keyFieldId: number;
 	nextFieldId: number;
 	nextRecordId: number;
@@ -928,18 +932,9 @@ export interface QBTableSave {
 export interface QBTableRunQuery {
 	where?: string;
 	select?: number[];
-	sortBy?: {
-		fieldId?: number;
-		order?: string;
-	}[];
-	groupBy?: {
-		fieldId?: number;
-		by?: 'string';
-	}[];
-	options?: {
-		skip?: number;
-		top?: number;
-	};
+	sortBy?: QuickBaseSortBy[];
+	groupBy?: QuickBaseGroupBy[];
+	options?: QuickBaseQueryOptions;
 }
 
 type QBTableRunQueryResponse = QuickBaseResponseRunQuery['metadata'] & {
