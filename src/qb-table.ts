@@ -594,8 +594,7 @@ export class QBTable {
 		return fields;
 	}
 
-	async saveRecords({ individually, fidsToSave, recordsToSave }: QBTableSave): Promise<QBRecord[]>;
-	async saveRecords(individually: QBTableSave | boolean = false, fidsToSave?: (string|number)[], recordsToSave?: QBRecord[]): Promise<QBRecord[]> {
+	async saveRecords(individually?: QBTableSave | boolean, fidsToSave?: (string|number)[], recordsToSave?: QBRecord[]): Promise<QBRecord[]> {
 		if(typeof(individually) === 'object'){
 			recordsToSave = individually.recordsToSave;
 			fidsToSave = individually.fidsToSave;
