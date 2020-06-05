@@ -10,7 +10,7 @@ import {
 	QuickBaseResponseRunQuery,
 	QuickBaseRecord
 } from 'quickbase';
-import { QBField, QBFieldJSON } from 'qb-field';
+import { QBField, QBFieldJSON, QBFieldAttribute } from 'qb-field';
 import { QBRecord, QBRecordJSON } from 'qb-record';
 import { QBReport, QBReportResponse } from 'qb-report';
 
@@ -59,7 +59,23 @@ export class QBTable {
 	private _fields: QBField[] = [];
 	private _records: QBRecord[] = [];
 	private _reports: QBReport[] = [];
-	private _data: QBTableData = {};
+	private _data: QBTableData = {
+		id: '',
+		alias: '',
+		created: 0,
+		updated: 0,
+		name: '',
+		description: '',
+		singleRecordName: '',
+		pluralRecordName: '',
+		timeZone: '',
+		dateFormat: '',
+		keyFieldId: 0,
+		nextFieldId: 0,
+		nextRecordId: 0,
+		defaultSortFieldId: 0,
+		defaultSortOrder: ''
+	};
 
 	constructor(options?: QBTableOptions){
 		if(options){
@@ -87,7 +103,23 @@ export class QBTable {
 		this._fields = [];
 		this._records = [];
 		this._reports = [];
-		this._data = {};
+		this._data = {
+			id: '',
+			alias: '',
+			created: 0,
+			updated: 0,
+			name: '',
+			description: '',
+			singleRecordName: '',
+			pluralRecordName: '',
+			timeZone: '',
+			dateFormat: '',
+			keyFieldId: 0,
+			nextFieldId: 0,
+			nextRecordId: 0,
+			defaultSortFieldId: 0,
+			defaultSortOrder: ''
+		};
 
 		return this;
 	}
@@ -156,7 +188,30 @@ export class QBTable {
 				records = this._records.splice(0, this._records.length);
 			}
 
-			// TODO: how to handle multiple deletes at once
+			const batches: QBRecord[][] = records.reduce((batches: QBRecord[][], record: QBRecord) => {
+				if(record.get('recordid') <= 0){
+					return batches;
+				}
+
+				if(batches[batches.length - 1].length === 100){
+					batches.push([]);
+				}
+
+				batches[batches.length - 1].push(record);
+
+				return batches;
+			}, [ [] ]);
+
+			for(let i = 0; i < batches.length; ++i){
+				const result = await this._qb.deleteRecords({
+					tableId: this.getDBID(),
+					where: batches[i].map((record) => {
+						return `{'${this.getFid('recordid')}'.EX.'${record.get('recordid')}'}`;
+					}).join('AND')
+				});
+
+				results.numberDeleted += result.numberDeleted;
+			}
 		}
 
 		return results;
@@ -169,7 +224,7 @@ export class QBTable {
 		if(attribute === 'pluralRecordName'){
 			attribute = 'pluralNoun';
 		}else
-		if(attribute === 'id'){
+		if(attribute === 'id' || attribute === 'dbid'){
 			return this.getDBID();
 		}
 
@@ -177,7 +232,7 @@ export class QBTable {
 			return null;
 		}
 
-		return this._data[attribute];
+		return (this._data as Indexable)[attribute];
 	}
 
 	getAppId(): string {
@@ -470,7 +525,7 @@ export class QBTable {
 			}
 
 			getObjectKeys(field).forEach((attribute) => {
-				result!.set(attribute, (field as Indexable)[attribute]);
+				result!.set(attribute === 'name' ? 'label' : attribute, (field as Indexable)[attribute]);
 			});
 		});
 
@@ -525,7 +580,7 @@ export class QBTable {
 		return results;
 	}
 
-	async saveFields(attributesToSave?: string[]): Promise<QBField[]> {
+	async saveFields(attributesToSave?: QBFieldAttribute[]): Promise<QBField[]> {
 		const fields = this.getFields();
 
 		for(let i = 0; i < fields.length; ++i){
@@ -605,7 +660,7 @@ export class QBTable {
 				'pluralNoun'
 			].indexOf(attribute) !== -1 && (!attributesToSave || attributesToSave.indexOf(attribute) === -1);
 		}).reduce((results: any, attribute) => {
-			results[attribute] = this._data[attribute];
+			results[attribute] = (this._data as Indexable)[attribute];
 
 			return results;
 		}, {
@@ -636,11 +691,13 @@ export class QBTable {
 		if(attribute === 'pluralRecordName'){
 			attribute = 'pluralNoun';
 		}else
-		if(attribute === 'id'){
+		if(attribute === 'id' || attribute === 'dbid'){
+			this._data.id = value;
+
 			return this.setDBID(value);
 		}
 
-		this._data[attribute] = value;
+		(this._data as Indexable)[attribute] = value;
 
 		return this;
 	}
@@ -679,12 +736,13 @@ export class QBTable {
 		return this;
 	}
 
-	async upsertField(options: QBField | QBFieldJSON, autoSave: boolean = false): Promise<QBField> {
+	async upsertField(options: QBField | Partial<QBFieldJSON['data'] & { quickbase: QuickBase | QuickBaseOptions, dbid: string, fid: number; }>, autoSave: boolean = false): Promise<QBField> {
 		let field: QBField | undefined;
 
 		if(options instanceof QBField){
 			field = options;
-		}else{
+		}else
+		if(options){
 			if(options.id){
 				options.fid = options.id;
 
@@ -696,22 +754,29 @@ export class QBTable {
 				fid: -1
 			}, options);
 
-			field = this.getField(options.fid);
+			if(options.fid){
+				field = this.getField(options.fid);
+			}
 
 			if(field === undefined){
 				field = new QBField({
 					quickbase: options.quickbase || this._qb,
-					dbid: options.dbid,
-					fid: options.fid
+					dbid: options.dbid || '',
+					fid: options.fid || -1
 				});
 			}
 
-			if(options.data){
-				Object.keys(options.data).forEach((attribute) => {
-					// @ts-ignore
-					field.set(attribute, options.data[attribute]);
+			if(options){
+				getObjectKeys(options).forEach((attribute) => {
+					if(attribute !== 'quickbase'){
+						field!.set(attribute, (options as Indexable)[attribute]);
+					}
 				});
 			}
+		}
+
+		if(!field){
+			throw new Error('Unable to upsertField');
 		}
 
 		let i = this.getField(field.getFid(), true);
@@ -729,7 +794,7 @@ export class QBTable {
 		return field;
 	}
 
-	async upsertFields(fields: (QBFieldJSON | QBField)[], autoSave: boolean = false): Promise<QBField[]>{
+	async upsertFields(fields: (Partial<QBFieldJSON> | QBField)[], autoSave: boolean = false): Promise<QBField[]>{
 		const results = [];
 
 		for(let i = 0; i < fields.length; ++i){
@@ -837,22 +902,21 @@ export interface QBTableOptions {
 }
 
 export interface QBTableData {
-	[index: string]: any;
-	id?: string;
-	alias?: string;
-	created?: number;
-	updated?: number;
-	name?: string;
-	description?: string;
-	singleRecordName?: string;
-	pluralRecordName?: string;
-	timeZone?: string;
-	dateFormat?: string;
-	keyFieldId?: number;
-	nextFieldId?: number;
-	nextRecordId?: number;
-	defaultSortFieldId?: number;
-	defaultSortOrder?: string;
+	id: string;
+	alias: string;
+	created: number;
+	updated: number;
+	name: string;
+	description: string;
+	singleRecordName: string;
+	pluralRecordName: string;
+	timeZone: string;
+	dateFormat: string;
+	keyFieldId: number;
+	nextFieldId: number;
+	nextRecordId: number;
+	defaultSortFieldId: number;
+	defaultSortOrder: string;
 }
 
 export interface QBTableSave {

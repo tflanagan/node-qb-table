@@ -7,7 +7,7 @@ A lightweight, promise based abstraction layer for Quick Base Records
 
 Written in TypeScript, targets Nodejs and the Browser
 
-This library targets the new RESTful JSON-based API, not the old XML-based API. If you want to use the old XML-based API, then please use [v2.x](https://github.com/tflanagan/node-qb-table/tree/master/) of this library.
+This library targets the new RESTful JSON-based API, not the old XML-based API. If you want to use the old XML-based API, then please use [v2.x](https://github.com/tflanagan/node-qb-table/tree/v2.x/) of this library.
 
 ```
 IE 11 Users, if you are receiving this error:
@@ -26,8 +26,8 @@ change a security setting:
 Install
 -------
 ```
-# Install alpha channel
-$ npm install qb-table@alpha
+# Install
+$ npm install qb-table
 ```
 
 Documentation
@@ -51,7 +51,10 @@ const quickbase = new QuickBase({
 
 const qbTable = new QBTable({
 	quickbase: quickbase,
-	dbid: 'xxxxxxxxx'
+	dbid: 'xxxxxxxxx',
+    fids: {
+        name: 6
+    }
 });
 
 (async () => {
@@ -76,13 +79,16 @@ var quickbase = new QuickBase({
 
 var qbTable = new QBTable({
 	quickbase: quickbase,
-	dbid: 'xxxxxxxxx'
+    dbid: 'xxxxxxxxx',
+    fids: {
+        name: 6
+    }
 });
 
 // Using a Temporary Token
-quickbase.getTempToken().then(function(results){
-    quickbase.setTempToken(results.temporaryAuthorization);
-
+quickbase.getTempToken({
+    dbid: qbTable.getDBID()
+}).then(function(results){
     return qbTable.load();
 }).then(function(results){
     console.log(results);
