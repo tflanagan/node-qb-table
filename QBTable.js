@@ -3,7 +3,7 @@
 /* Versioning */
 const VERSION_MAJOR = 2;
 const VERSION_MINOR = 2;
-const VERSION_PATCH = 3;
+const VERSION_PATCH = 5;
 
 /* Dependencies */
 const merge = require('lodash.merge');
@@ -502,7 +502,7 @@ class QBTable {
 		});
 	};
 
-	save(individually, fidsToSave, recordsToSave){
+	save(individually, fidsToSave, recordsToSave, mergeFieldId){
 		const records = recordsToSave === undefined ? this.getRecords() : recordsToSave;
 
 		if(individually){
@@ -515,7 +515,7 @@ class QBTable {
 
 		const fids = this.getFids();
 
-		const key = fids.recordid === fids.primaryKey ? fids.recordid : fids.primaryKey;
+		const key = mergeFieldId || (fids.recordid === fids.primaryKey ? fids.recordid : fids.primaryKey);
 
 		let clist = [ key ];
 
@@ -585,7 +585,8 @@ class QBTable {
 		return this._qb.api('API_ImportFromCSV', {
 			dbid: this.getDBID(),
 			clist: clist,
-			records_csv: csv
+			records_csv: csv,
+			mergeFieldId: key
 		}).then((results) => {
 			if(results.rids && results.rids.length > 0){
 				records.forEach((record, i) => {
