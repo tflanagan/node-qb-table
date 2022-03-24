@@ -12,7 +12,8 @@ import {
 	dateFormat,
 	QuickBaseGroupBy,
 	QuickBaseSortBy,
-	QuickBaseQueryOptions
+	QuickBaseQueryOptions,
+	QuickBaseRequestRunQuery
 } from 'quickbase';
 import { QBField, QBFieldJSON, QBFieldAttribute } from 'qb-field';
 import { QBRecord, QBRecordJSON } from 'qb-record';
@@ -468,14 +469,95 @@ export class QBTable {
 		return this._data;
 	}
 
+	private async _runQueryAll(query: QuickBaseRequestRunQuery): Promise<QuickBaseResponseRunQuery> {
+		const results: QuickBaseResponseRunQuery = {
+			metadata: {
+				numFields: 0,
+				numRecords: 0,
+				skip: 0,
+				top: 0,
+				totalRecords: 0
+			},
+			data: [],
+			fields: []
+		};
+		let firstRun = true,
+			skip = query.options?.skip || 0,
+			top = 0,
+			total = 0;
+
+		while(true){
+			const batchQuery: QuickBaseRequestRunQuery = {
+				...query,
+				sortBy: [{
+					fieldId: 3,
+					order: 'ASC'
+				}]
+			};
+
+			if(!firstRun){
+				batchQuery.options = {
+					skip,
+					top
+				};
+			}
+
+			if(!this._qb.settings.userToken){
+				await this._qb.getTempToken({
+					dbid: batchQuery.tableId
+				});
+			}
+
+			const {
+				fields,
+				metadata,
+				data
+			} = await this._qb.runQuery(batchQuery);
+
+			if(firstRun){
+				results.fields = fields;
+				results.metadata = metadata;
+				results.data = data;
+
+				total = metadata.totalRecords;
+
+				firstRun = false;
+			}else{
+				results.data = results.data.concat(data);
+			}
+
+			top = metadata.top || metadata.numRecords || top; // top doesn't always return in metadata
+			skip += metadata.numRecords;
+
+			if(skip >= total){
+				break;
+			}
+		}
+
+		results.metadata.skip = 0;
+		results.metadata.top = results.data.length;
+		results.metadata.numRecords = results.data.length;
+		results.metadata.totalRecords = results.data.length;
+
+		return results;
+	}
+
 	async runQuery(): Promise<QBTableRunQueryResponse>;
-	async runQuery({ where, select, sortBy, groupBy, options }: QBTableRunQuery): Promise<QBTableRunQueryResponse>;
-	async runQuery(where?: string | QBTableRunQuery, select?: number[], sortBy?: { fieldId?: number; order?: string; }[], groupBy?: { fieldId?: number; by?: 'string'; }[], options?: { skip?: number, top?: number }): Promise<QBTableRunQueryResponse>{
+	async runQuery({ where, select, sortBy, groupBy, options, returnAll }: QBTableRunQuery): Promise<QBTableRunQueryResponse>;
+	async runQuery(
+		where?: string | QBTableRunQuery,
+		select?: number[],
+		sortBy?: { fieldId?: number; order?: string; }[],
+		groupBy?: { fieldId?: number; by?: 'string'; }[],
+		options?: { skip?: number, top?: number },
+		returnAll: boolean = false
+	): Promise<QBTableRunQueryResponse>{
 		if(typeof(where) === 'object'){
 			options = where.options;
 			groupBy = where.groupBy;
 			sortBy = where.sortBy;
 			select = where.select;
+			returnAll = !!where.returnAll;
 			where = where.where;
 		}
 
@@ -513,7 +595,13 @@ export class QBTable {
 			query.options = options;
 		}
 
-		const results = await this._qb.runQuery(query);
+		let results;
+
+		if(returnAll){
+			results = await this._runQueryAll(query);
+		}else{
+			results = await this._qb.runQuery(query);
+		}
 
 		results.fields.forEach((field) => {
 			let result = this.getField(field.id);
@@ -555,7 +643,7 @@ export class QBTable {
 		});
 
 		return {
-			...results.metadata,
+			metadata: results.metadata,
 			fields: this.getFields(),
 			records: this.getRecords()
 		};
@@ -934,9 +1022,11 @@ export interface QBTableRunQuery {
 	sortBy?: QuickBaseSortBy[];
 	groupBy?: QuickBaseGroupBy[];
 	options?: QuickBaseQueryOptions;
+	returnAll?: boolean;
 }
 
-type QBTableRunQueryResponse = QuickBaseResponseRunQuery['metadata'] & {
+type QBTableRunQueryResponse = {
+	metadata: QuickBaseResponseRunQuery['metadata'];
 	records: QBRecord[];
 	fields: QBField[];
 };
