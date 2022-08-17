@@ -84,15 +84,23 @@ export class QBTable {
 
 	constructor(options?: QBTableOptions){
 		if(options){
-			if(options.quickbase instanceof QuickBase){
-				this._qb = options.quickbase;
+			const {
+				quickbase,
+				...classOptions
+			} = options || {};
+
+			if(quickbase){
+				// @ts-ignore
+				if(quickbase && quickbase.CLASS_NAME === 'QuickBase'){
+					this._qb = quickbase as QuickBase;
+				}else{
+					this._qb = new QuickBase(quickbase as QuickBaseOptions);
+				}
 			}else{
-				this._qb = new QuickBase(options.quickbase);
+				this._qb = new QuickBase();
 			}
 
-			delete options.quickbase;
-
-			const settings = merge(QBRecord.defaults, options || {});
+			const settings = merge(QBRecord.defaults, classOptions);
 
 			this.setAppId(settings.appId)
 				.setDBID(settings.dbid)
@@ -357,7 +365,7 @@ export class QBTable {
 			if(typeof(field) === 'number'){
 				field = new QBField({
 					quickbase: this._qb,
-					dbid: this.getDBID(),
+					tableId: this.getDBID(),
 					fid: field
 				});
 
@@ -381,7 +389,7 @@ export class QBTable {
 			if(!result){
 				result = new QBField({
 					quickbase: this._qb,
-					dbid: this.getDBID(),
+					tableId: this.getDBID(),
 					fid: field.id
 				});
 
@@ -403,7 +411,7 @@ export class QBTable {
 			if(typeof(report) === 'number'){
 				report = new QBReport({
 					quickbase: this._qb,
-					dbid: this.getDBID(),
+					tableId: this.getDBID(),
 					reportId: report
 				});
 
@@ -427,7 +435,7 @@ export class QBTable {
 		this._reports = results.map((report) => {
 			const qbReport = new QBReport({
 				quickbase: this._qb,
-				dbid: this.getDBID(),
+				tableId: this.getDBID(),
 				reportId: report.id
 			});
 
@@ -609,7 +617,7 @@ export class QBTable {
 			if(!result){
 				result = new QBField({
 					quickbase: this._qb,
-					dbid: this.getDBID(),
+					tableId: this.getDBID(),
 					fid: field.id
 				});
 
@@ -617,6 +625,7 @@ export class QBTable {
 			}
 
 			getObjectKeys(field).forEach((attribute) => {
+				// @ts-ignore
 				result!.set(attribute === 'name' ? 'label' : attribute, (field as Indexable)[attribute]);
 			});
 		});
@@ -626,7 +635,7 @@ export class QBTable {
 		this._records = results.data.map((record) => {
 			const qbRecord = new QBRecord({
 				quickbase: this._qb,
-				dbid: this.getDBID(),
+				tableId: this.getDBID(),
 				fids: this.getFids()
 			});
 
@@ -656,7 +665,7 @@ export class QBTable {
 			if(typeof(report) === 'number'){
 				report = new QBReport({
 					quickbase: this._qb,
-					dbid: this.getDBID(),
+					tableId: this.getDBID(),
 					reportId: report
 				});
 
@@ -676,6 +685,7 @@ export class QBTable {
 		const fields = this.getFields();
 
 		for(let i = 0; i < fields.length; ++i){
+			// @ts-ignore
 			await fields[i].save(attributesToSave);
 		}
 
@@ -852,7 +862,7 @@ export class QBTable {
 			if(field === undefined){
 				field = new QBField({
 					quickbase: options.quickbase || this._qb,
-					dbid: options.dbid || '',
+					tableId: options.dbid || '',
 					fid: options.fid || -1
 				});
 			}
@@ -918,7 +928,7 @@ export class QBTable {
 		if(!record){
 			record = new QBRecord({
 				quickbase: this._qb,
-				dbid: this.getDBID(),
+				tableId: this.getDBID(),
 				fids: this.getFids()
 			});
 
