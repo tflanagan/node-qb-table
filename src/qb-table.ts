@@ -2,29 +2,34 @@
 
 /* Dependencies */
 import merge from 'deepmerge';
+import RFC4122 from 'rfc4122';
 import {
 	QuickBase,
 	QuickBaseOptions,
 	QuickBaseResponseDeleteTable,
 	QuickBaseResponseDeleteRecords,
 	QuickBaseResponseRunQuery,
-	QuickBaseRecord,
-	dateFormat,
-	QuickBaseGroupBy,
-	QuickBaseSortBy,
-	QuickBaseQueryOptions,
-	QuickBaseRequestRunQuery
+	QuickBaseRequestRunQuery,
+	QuickBaseRequest,
+	QuickBaseResponseGetTable
 } from 'quickbase';
-import { QBField, QBFieldJSON, QBFieldAttribute } from 'qb-field';
-import { QBRecord, QBRecordJSON } from 'qb-record';
-import { QBReport, QBReportResponse } from 'qb-report';
+import { QBField, QBFieldJSON, QBFieldAttributeSavable } from 'qb-field';
+import { QBFids, QBRecord, QBRecordData, QBRecordJSON } from 'qb-record';
+import { QBReport, QBReportRunResponse, QBReportRunRequest } from 'qb-report';
 
 /* Globals */
 const VERSION = require('../package.json').version;
 const IS_BROWSER = typeof(window) !== 'undefined';
+const rfc4122 = new RFC4122();
 
 /* Main Class */
-export class QBTable {
+export class QBTable<
+	RecordData extends QBRecordData = QBRecordData,
+	CustomGetSet extends Object = Record<any, any>
+> {
+
+	public readonly CLASS_NAME = 'QBTable';
+	static readonly CLASS_NAME = 'QBTable';
 
 	/**
 	 * The loaded library version
@@ -40,12 +45,12 @@ export class QBTable {
 		},
 
 		appId: '',
-		dbid: (() => {
+		tableId: (() => {
 			if(IS_BROWSER){
-				const dbid = window.location.pathname.match(/^\/db\/(?!main)(.*)$/);
+				const tableId = window.location.pathname.match(/^\/db\/(?!main)(.*)$/);
 
-				if(dbid){
-					return dbid[1];
+				if(tableId){
+					return tableId[1];
 				}
 			}
 
@@ -57,62 +62,47 @@ export class QBTable {
 		}
 	};
 
+	/**
+	 * An internal id (guid) used for tracking/managing object instances
+	 */
+	public id: string;
+
 	private _qb: QuickBase;
 	private _appId: string = '';
-	private _dbid: string = '';
-	private _fids: QBTableFids = {};
+	private _tableId: string = '';
+	private _fids: Record<any, number> = {};
 	private _fields: QBField[] = [];
-	private _records: QBRecord[] = [];
-	private _reports: QBReport[] = [];
-	private _data: QBTableData = {
-		id: '',
-		alias: '',
-		created: 0,
-		updated: 0,
-		name: '',
-		description: '',
-		singleRecordName: '',
-		pluralRecordName: '',
-		timeZone: '',
-		dateFormat: 'MM-DD-YYYY',
-		keyFieldId: 0,
-		nextFieldId: 0,
-		nextRecordId: 0,
-		defaultSortFieldId: 0,
-		defaultSortOrder: ''
-	};
+	private _records: QBRecord<RecordData>[] = [];
+	private _reports: QBReport<RecordData>[] = [];
+	private _data: Record<any, any> = {};
 
-	constructor(options?: QBTableOptions){
-		if(options){
-			const {
-				quickbase,
-				...classOptions
-			} = options || {};
+	constructor(options?: Partial<QBTableOptions<RecordData>>){
+		this.id = rfc4122.v4();
 
-			if(quickbase){
-				// @ts-ignore
-				if(quickbase && quickbase.CLASS_NAME === 'QuickBase'){
-					this._qb = quickbase as QuickBase;
-				}else{
-					this._qb = new QuickBase(quickbase as QuickBaseOptions);
-				}
-			}else{
-				this._qb = new QuickBase();
-			}
+		const {
+			quickbase,
+			...classOptions
+		} = options || {};
 
-			const settings = merge(QBRecord.defaults, classOptions);
-
-			this.setAppId(settings.appId)
-				.setDBID(settings.dbid)
-				.setFids(settings.fids);
+		if(QuickBase.IsQuickBase(quickbase)){
+			this._qb = quickbase;
 		}else{
-			this._qb = new QuickBase();
+			this._qb = new QuickBase(merge.all([
+				QBTable.defaults.quickbase,
+				quickbase || {}
+			]));
 		}
+
+		const settings = merge(QBTable.defaults, classOptions);
+
+		this.setAppId(settings.appId)
+			.setTableId(settings.tableId)
+			.setFids(settings.fids as Record<any, number>);
 
 		return this;
 	}
 
-	clear(): QBTable {
+	clear(): this {
 		this._fields = [];
 		this._records = [];
 		this._reports = [];
@@ -137,19 +127,20 @@ export class QBTable {
 		return this;
 	}
 
-	async delete(): Promise<QuickBaseResponseDeleteTable> {
+	async delete({ requestOptions }: QuickBaseRequest = {}): Promise<QuickBaseResponseDeleteTable> {
 		const results = await this._qb.deleteTable({
 			appId: this.getAppId(),
-			tableId: this.getDBID()
+			tableId: this.getTableId(),
+			requestOptions
 		});
 
-		this.setDBID('');
+		this.setTableId('');
 		this.clear();
 
 		return results;
 	}
 
-	async deleteRecord(record: QBRecord): Promise<QuickBaseResponseDeleteRecords> {
+	async deleteRecord({ record, requestOptions }: { record: QBRecord<RecordData> } & QuickBaseRequest): Promise<QuickBaseResponseDeleteRecords> {
 		let i = -1;
 
 		this.getRecords().some((r, o) => {
@@ -171,7 +162,9 @@ export class QBTable {
 		}
 
 		if(record.get('recordid')){
-			results = await record.delete();
+			results = await record.delete({
+				requestOptions
+			});
 
 			if(results.numberDeleted === 0){
 				this._records.push(record);
@@ -181,7 +174,14 @@ export class QBTable {
 		return results;
 	}
 
-	async deleteRecords(individually: boolean = false, records?: QBRecord[]): Promise<QuickBaseResponseDeleteRecords> {
+	async deleteRecords({
+		individually = false,
+		records,
+		requestOptions
+	}: {
+		individually?: boolean;
+		records?: QBRecord<RecordData>[];
+	} & QuickBaseRequest = {}): Promise<QuickBaseResponseDeleteRecords> {
 		const results = {
 			numberDeleted: 0
 		};
@@ -192,7 +192,10 @@ export class QBTable {
 			}
 
 			for(const record of records){
-				const result = await this.deleteRecord(record);
+				const result = await this.deleteRecord({
+					record,
+					requestOptions
+				});
 
 				results.numberDeleted += result.numberDeleted;
 			}
@@ -201,7 +204,7 @@ export class QBTable {
 				records = this._records.splice(0, this._records.length);
 			}
 
-			const batches: QBRecord[][] = records.reduce((batches: QBRecord[][], record: QBRecord) => {
+			const batches: QBRecord<RecordData>[][] = records.reduce((batches: QBRecord<RecordData>[][], record: QBRecord<RecordData>) => {
 				if(record.get('recordid') <= 0){
 					return batches;
 				}
@@ -217,10 +220,11 @@ export class QBTable {
 
 			for(let i = 0; i < batches.length; ++i){
 				const result = await this._qb.deleteRecords({
-					tableId: this.getDBID(),
+					tableId: this.getTableId(),
 					where: batches[i].map((record) => {
 						return `{'${this.getFid('recordid')}'.EX.'${record.get('recordid')}'}`;
-					}).join('AND')
+					}).join('AND'),
+					requestOptions
 				});
 
 				results.numberDeleted += result.numberDeleted;
@@ -230,32 +234,26 @@ export class QBTable {
 		return results;
 	}
 
-	get(attribute: string): any {
-		if(attribute === 'singleRecordName'){
-			attribute = 'singularNoun';
+	get<T extends keyof CustomGetSet>(attribute: T): CustomGetSet[T];
+	get<T extends keyof QuickBaseResponseGetTable>(attribute: T): QuickBaseResponseGetTable[T];
+	get(attribute: 'id' | 'appId' | 'tableId'): string;
+	get<T = any>(attribute: any): T;
+	get(attribute: any): any {
+		if(attribute === 'id' || attribute === 'tableId'){
+			return this.getTableId();
 		}else
-		if(attribute === 'pluralRecordName'){
-			attribute = 'pluralNoun';
-		}else
-		if(attribute === 'id' || attribute === 'dbid'){
-			return this.getDBID();
+		if(attribute === 'appId'){
+			return this.getAppId();
 		}
 
-		if(!this._data.hasOwnProperty(attribute)){
-			return null;
-		}
-
-		return (this._data as Indexable)[attribute];
+		return this._data[attribute];
 	}
 
 	getAppId(): string {
 		return this._appId;
 	}
 
-	getDBID(): string {
-		return this._dbid;
-	}
-
+	getFid<T extends keyof RecordData>(field: T): number;
 	getFid(field: string | number, byId?: false | undefined): number;
 	getFid(field: number, byId: true): string;
 	getFid(field: string | number, byId: boolean = false): string | number {
@@ -284,8 +282,8 @@ export class QBTable {
 		return id;
 	}
 
-	getFids(): QBTableFids {
-		return this._fids;
+	getFids(): QBFids<RecordData> {
+		return this._fids as QBFids<RecordData>;
 	}
 
 	getField(id: number, returnIndex: true): number | undefined;
@@ -312,9 +310,11 @@ export class QBTable {
 		return this._records.length;
 	}
 
+	getRecord<T extends keyof RecordData>(value: RecordData[T], fieldName: T, returnIndex: true): number;
+	getRecord<T extends keyof RecordData>(value: RecordData[T], fieldName: T, returnIndex?: false): QBRecord<RecordData> | undefined;
 	getRecord(value: any, fieldName: string | number, returnIndex: true): number;
-	getRecord(value: any, fieldName?: string | number, returnIndex?: false | undefined): QBRecord | undefined;
-	getRecord(value: any, fieldName: string | number = 'recordid', returnIndex: boolean = false): QBRecord | number | undefined {
+	getRecord(value: any, fieldName?: string | number, returnIndex?: false | undefined): QBRecord<RecordData> | undefined;
+	getRecord(value: any, fieldName: string | number = 'recordid', returnIndex: boolean = false): QBRecord<RecordData> | number | undefined {
 		const records = this.getRecords();
 		let i = -1;
 
@@ -338,11 +338,11 @@ export class QBTable {
 		return records[i];
 	}
 
-	getRecords(): QBRecord[] {
+	getRecords(): QBRecord<RecordData>[] {
 		return this._records;
 	}
 
-	getReport(id: number): QBReport | undefined {
+	getReport(id: string): QBReport<RecordData> | undefined {
 		let result;
 
 		for(let i = 0; !result && i < this._reports.length; ++i){
@@ -354,18 +354,22 @@ export class QBTable {
 		return result;
 	}
 
-	getReports(): QBReport[] {
+	getReports(): QBReport<RecordData>[] {
 		return this._reports;
 	}
 
-	async loadField(field: number | QBField): Promise<QBField> {
-		if(typeof(field) === 'number'){
+	getTableId(): string {
+		return this._tableId;
+	}
+
+	async loadField({ field, requestOptions }: QuickBaseRequest & { field: number | QBField }): Promise<QBField> {
+		if(!QBField.IsQBField(field)){
 			field = this.getField(field) || field;
 
-			if(typeof(field) === 'number'){
+			if(!QBField.IsQBField(field)){
 				field = new QBField({
 					quickbase: this._qb,
-					tableId: this.getDBID(),
+					tableId: this.getTableId(),
 					fid: field
 				});
 
@@ -373,14 +377,17 @@ export class QBTable {
 			}
 		}
 
-		await field.load();
+		await field.load({
+			requestOptions
+		});
 
 		return field;
 	}
 
-	async loadFields(): Promise<QBField[]> {
+	async loadFields({ requestOptions }: QuickBaseRequest = {}): Promise<QBField[]> {
 		const results = await this._qb.getFields({
-			tableId: this.getDBID()
+			tableId: this.getTableId(),
+			requestOptions
 		});
 
 		results.forEach((field) => {
@@ -389,60 +396,63 @@ export class QBTable {
 			if(!result){
 				result = new QBField({
 					quickbase: this._qb,
-					tableId: this.getDBID(),
+					tableId: this.getTableId(),
 					fid: field.id
 				});
 
 				this._fields.push(result);
 			}
 
-			getObjectKeys(field).forEach((attribute) => {
-				result!.set(attribute, (field as Indexable)[attribute]);
+			Object.entries(field).forEach(([ attribute, value ]) => {
+				result!.set(attribute, value);
 			});
 		});
 
 		return this.getFields();
 	}
 
-	async loadReport(report: number | QBReport): Promise<QBReport> {
-		if(typeof(report) === 'number'){
+	async loadReport({ report, requestOptions }: QuickBaseRequest & { report: string | QBReport<RecordData> }): Promise<QBReport<RecordData>> {
+		if(!QBReport.IsQBReport(report)){
 			report = this.getReport(report) || report;
 
-			if(typeof(report) === 'number'){
-				report = new QBReport({
+			if(!QBReport.IsQBReport(report)){
+				report = new QBReport<RecordData>({
 					quickbase: this._qb,
-					tableId: this.getDBID(),
+					tableId: this.getTableId(),
 					reportId: report
 				});
 
-				// @ts-ignore
-				report._fids = this.getFids();
+				report.setFids(this.getFids());
 
 				this._reports.push(report);
 			}
 		}
 
-		await report.loadSchema();
+		await report.load({
+			requestOptions
+		});
 
 		return report;
 	}
 
-	async loadReports(): Promise<QBReport[]> {
+	async loadReports({ requestOptions }: QuickBaseRequest = {}): Promise<QBReport<RecordData>[]> {
 		const results = await this._qb.getTableReports({
-			tableId: this.getDBID()
+			tableId: this.getTableId(),
+			requestOptions
 		});
 
 		this._reports = results.map((report) => {
-			const qbReport = new QBReport({
+			const qbReport = new QBReport<RecordData>({
 				quickbase: this._qb,
-				tableId: this.getDBID(),
+				tableId: this.getTableId(),
 				reportId: report.id
 			});
 
-			// @ts-ignore
-			qbReport._data = report;
-			// @ts-ignore
-			qbReport._fids = this.getFids();
+			Object.entries(report).forEach(([ key, value ]) => {
+				qbReport.set(key, value);
+			});
+
+			qbReport.setFids(this.getFids());
 
 			return qbReport;
 		});
@@ -450,11 +460,11 @@ export class QBTable {
 		return this._reports;
 	}
 
-	async loadSchema(): Promise<QBTableData & { fields: QBField[], reports: QBReport[] }> {
+	async loadSchema({ requestOptions }: QuickBaseRequest = {}): Promise<QuickBaseResponseGetTable & { fields: QBField[], reports: QBReport<RecordData>[] }> {
 		const results = await Promise.all([
-			this.loadFields(),
-			this.loadReports(),
-			this.loadTable()
+			this.loadFields({ requestOptions }),
+			this.loadReports({ requestOptions }),
+			this.loadTable({ requestOptions })
 		]);
 
 		return {
@@ -464,17 +474,18 @@ export class QBTable {
 		};
 	}
 
-	async loadTable(): Promise<QBTableData> {
+	async loadTable({ requestOptions }: QuickBaseRequest = {}): Promise<QuickBaseResponseGetTable> {
 		const results = await this._qb.getTable({
 			appId: this.getAppId(),
-			tableId: this.getDBID()
+			tableId: this.getTableId(),
+			requestOptions
 		});
 
-		Object.keys(results).forEach((attribute) => {
-			this.set(attribute, (results as Indexable)[attribute]);
+		Object.entries(results).forEach(([ attribute, value ]) => {
+			this.set(attribute, value);
 		});
 
-		return this._data;
+		return this._data as QuickBaseResponseGetTable;
 	}
 
 	private async _runQueryAll(query: QuickBaseRequestRunQuery): Promise<QuickBaseResponseRunQuery> {
@@ -511,7 +522,7 @@ export class QBTable {
 			}
 
 			if(!this._qb.settings.userToken){
-				await this._qb.getTempToken({
+				await this._qb.getTempTokenDBID({
 					dbid: batchQuery.tableId
 				});
 			}
@@ -520,7 +531,10 @@ export class QBTable {
 				fields,
 				metadata,
 				data
-			} = await this._qb.runQuery(batchQuery);
+			} = await this._qb.runQuery({
+				...batchQuery,
+				returnAxios: false
+			});
 
 			if(firstRun){
 				results.fields = fields;
@@ -550,45 +564,32 @@ export class QBTable {
 		return results;
 	}
 
-	async runQuery(): Promise<QBTableRunQueryResponse>;
-	async runQuery({ where, select, sortBy, groupBy, options, returnAll }: QBTableRunQuery): Promise<QBTableRunQueryResponse>;
-	async runQuery(
-		where?: string | QBTableRunQuery,
-		select?: number[],
-		sortBy?: { fieldId?: number; order?: string; }[],
-		groupBy?: { fieldId?: number; by?: 'string'; }[],
-		options?: { skip?: number, top?: number },
-		returnAll: boolean = false
-	): Promise<QBTableRunQueryResponse>{
-		if(typeof(where) === 'object'){
-			options = where.options;
-			groupBy = where.groupBy;
-			sortBy = where.sortBy;
-			select = where.select;
-			returnAll = !!where.returnAll;
-			where = where.where;
+	async runQuery({ fids, groupBy, options, select, sortBy, where, returnAll, requestOptions }: QBTableRunQueryOptions = {}): Promise<QBTableRunQueryResponse<RecordData>> {
+		if(!fids){
+			fids = this.getFids();
 		}
-
-		const fids = this.getFids();
+		
 		const names = Object.keys(fids);
 
-		const selectedFids = names.reduce((selectedFids: QBTableFids, name) => {
-			const fid = fids[name];
+		const selectedFids = names.reduce((selectedFids, name) => {
+			const fid = fids![name];
 
 			if(!select || select.length === 0 || select.indexOf(fid) !== -1){
 				selectedFids[name] = fid;
 			}
 
 			return selectedFids;
-		}, {});
+		}, {} as Record<string | number, number>);
 		const selectedNames = Object.keys(selectedFids);
 
 		const query: any = {
-			tableId: this.getDBID(),
+			tableId: this.getTableId(),
 			select: selectedNames.map((name) => {
 				return selectedFids[name];
 			}).filter(filterUnique),
-			where: where
+			where: where,
+			requestOptions,
+			returnAxios: false
 		};
 
 		if(sortBy){
@@ -617,30 +618,28 @@ export class QBTable {
 			if(!result){
 				result = new QBField({
 					quickbase: this._qb,
-					tableId: this.getDBID(),
+					tableId: this.getTableId(),
 					fid: field.id
 				});
 
 				this._fields.push(result);
 			}
 
-			getObjectKeys(field).forEach((attribute) => {
-				// @ts-ignore
-				result!.set(attribute === 'name' ? 'label' : attribute, (field as Indexable)[attribute]);
+			Object.entries(field).forEach(([ attribute, value ]) => {
+				result!.set(attribute, value);
 			});
 		});
 
 		const fields = this.getFields();
 
 		this._records = results.data.map((record) => {
-			const qbRecord = new QBRecord({
+			const qbRecord = new QBRecord<RecordData>({
 				quickbase: this._qb,
-				tableId: this.getDBID(),
+				tableId: this.getTableId(),
 				fids: this.getFids()
 			});
 
-			//@ts-ignore
-			qbRecord._fields = fields;
+			qbRecord.setFields(fields);
 
 			selectedNames.forEach((name) => {
 				const fid = selectedFids[name];
@@ -658,52 +657,56 @@ export class QBTable {
 		};
 	}
 
-	async runReport(report: number | QBReport): Promise<QBReportResponse>{
-		if(typeof(report) === 'number'){
+	async runReport({ report, skip, top, requestOptions }: QBReportRunRequest & { report: string | QBReport<RecordData> }): Promise<QBReportRunResponse>{
+		if(!QBReport.IsQBReport(report)){
 			report = this.getReport(report) || report;
 
-			if(typeof(report) === 'number'){
-				report = new QBReport({
+			if(!QBReport.IsQBReport(report)){
+				report = new QBReport<RecordData>({
 					quickbase: this._qb,
-					tableId: this.getDBID(),
+					tableId: this.getTableId(),
 					reportId: report
 				});
 
-				// @ts-ignore
-				report._fids = this.getFids();
+				report.setFids(this.getFids());
+
+				this._reports.push(report);
 			}
 		}
 
-		const results = await report.load();
+		const results = await report.run({
+			skip,
+			top,
+			requestOptions
+		});
 
 		this._records = report.getRecords();
 
 		return results;
 	}
 
-	async saveFields(attributesToSave?: QBFieldAttribute[]): Promise<QBField[]> {
+	async saveFields({ attributesToSave, requestOptions }: { attributesToSave?: QBFieldAttributeSavable[] } & QuickBaseRequest = {}): Promise<QBField[]> {
 		const fields = this.getFields();
 
 		for(let i = 0; i < fields.length; ++i){
-			// @ts-ignore
-			await fields[i].save(attributesToSave);
+			await fields[i].save({
+				attributesToSave,
+				requestOptions
+			});
 		}
 
 		return fields;
 	}
 
-	async saveRecords(individually?: QBTableSave | boolean, fidsToSave?: (string|number)[], recordsToSave?: QBRecord[]): Promise<QBRecord[]> {
-		if(typeof(individually) === 'object'){
-			recordsToSave = individually.recordsToSave;
-			fidsToSave = individually.fidsToSave;
-			individually = individually.individually || false;
-		}
-
+	async saveRecords({ individually, fidsToSave, recordsToSave, requestOptions }: { individually?:  boolean, fidsToSave?: (keyof RecordData | number)[], recordsToSave?: QBRecord<RecordData>[] } & QuickBaseRequest = {}): Promise<QBRecord<RecordData>[]> {
 		const records = recordsToSave === undefined ? this.getRecords() : recordsToSave;
 
 		if(individually){
 			for(let i = 0; i < records.length; ++i){
-				await records[i].save(fidsToSave);
+				await records[i].save({
+					fidsToSave,
+					requestOptions
+				});
 			}
 		}else{
 			const ridFid = this.getFid('recordid');
@@ -715,11 +718,11 @@ export class QBTable {
 				return !fidsToSave || fidsToSave.indexOf(fid) !== -1 || fidsToSave.indexOf(name) !== -1 || fid === ridFid;
 			});
 
-			const results = await this._qb.upsertRecords({
-				tableId: this.getDBID(),
+			const results = await this._qb.upsert({
+				tableId: this.getTableId(),
 				mergeFieldId: ridFid,
 				data: records.map((qbRecord) => {
-					return selectedNames.reduce((record: QuickBaseRecord, name) => {
+					return selectedNames.reduce((record, name) => {
 						const fid = fids[name];
 
 						if(fid){
@@ -731,11 +734,15 @@ export class QBTable {
 						}
 
 						return record;
-					}, {});
+
+					}, {} as Record<string,{
+						value: any
+					}>);
 				}),
 				fieldsToReturn: names.map((name) => {
 					return fids[name];
-				}).filter(filterUnique)
+				}).filter(filterUnique),
+				requestOptions
 			});
 
 			records.forEach((record, i) => {
@@ -750,8 +757,8 @@ export class QBTable {
 		return records;
 	}
 
-	async saveTable(attributesToSave?: string[]): Promise<QBTableData> {
-		const tableId = this.getDBID();
+	async saveTable({ attributesToSave, requestOptions }: { attributesToSave?: string[] } & QuickBaseRequest = {}): Promise<QuickBaseResponseGetTable> {
+		const tableId = this.getTableId();
 		const data = Object.keys(this._data).filter((attribute) => {
 			return [
 				'name',
@@ -761,11 +768,12 @@ export class QBTable {
 				'pluralNoun'
 			].indexOf(attribute) !== -1 && (!attributesToSave || attributesToSave.indexOf(attribute) === -1);
 		}).reduce((results: any, attribute) => {
-			results[attribute] = (this._data as Indexable)[attribute];
+			results[attribute] = this._data[attribute];
 
 			return results;
 		}, {
-			appId: this.getAppId()
+			appId: this.getAppId(),
+			requestOptions
 		});
 
 		let results: any;
@@ -778,117 +786,102 @@ export class QBTable {
 			results = await this._qb.createTable(data);
 		}
 
-		Object.keys(results).forEach((attribute) => {
-			this.set(attribute, results[attribute]);
+		Object.entries(results).forEach(([ attribute, value ]) => {
+			this.set(attribute, value);
 		});
 
-		return this._data;
+		return this._data as QuickBaseResponseGetTable;
 	}
 
-	set(attribute: string, value: any): QBTable {
-		if(attribute === 'singleRecordName'){
-			attribute = 'singularNoun';
+	set<T extends keyof CustomGetSet>(attribute: T, value: CustomGetSet[T]): this;
+	set<T extends keyof QuickBaseResponseGetTable>(attribute: T, value: QuickBaseResponseGetTable[T]): this;
+	set(attribute: 'id' | 'tableId' | 'appid', value: string): this;
+	set<T = any>(attribute: any, value: T): this;
+	set(attribute: any, value: any): this {
+		if(attribute === 'id' || attribute === 'tableId'){
+			return this.setTableId(value);
 		}else
-		if(attribute === 'pluralRecordName'){
-			attribute = 'pluralNoun';
-		}else
-		if(attribute === 'id' || attribute === 'dbid'){
-			this._data.id = value;
-
-			return this.setDBID(value);
+		if(attribute === 'appid'){
+			return this.setAppId(value);
 		}
 
-		(this._data as Indexable)[attribute] = value;
+		this._data[attribute] = value;
 
 		return this;
 	}
 
-	setAppId(appId: string): QBTable {
+	setAppId(appId: string): this {
 		this._appId = appId;
 
 		return this;
 	}
 
-	setDBID(dbid: string): QBTable {
-		this._dbid = dbid;
+	setFid<T extends keyof RecordData>(name: T, id: number): this;
+	setFid(name: string | number, id: number): this;
+	setFid(name: string | number, id: number): this {
+		this._fids[name] = +id;
 
 		return this;
 	}
 
-	setFid(name: string | number, id: number): QBTable {
-		if(typeof(id) === 'object'){
-			this._fids[name] = id;
-
-			Object.keys(id).forEach((key, i) => {
-				this._fids[('' + name) + (i + 1)] = +id[key];
-			});
-		}else{
-			this._fids[name] = +id;
-		}
-
-		return this;
-	}
-
-	setFids(fields: QBTableFids): QBTable {
-		Object.keys(fields).forEach((name) => {
-			this.setFid(name, fields[name]);
+	setFids(fields: Record<any, number>): this {
+		Object.entries(fields).forEach(([ name, fid ]) => {
+			this.setFid(name, fid);
 		});
 
 		return this;
 	}
 
-	async upsertField(options: QBField | Partial<QBFieldJSON['data'] & { quickbase: QuickBase | QuickBaseOptions, dbid: string, fid: number; }>, autoSave: boolean = false): Promise<QBField> {
+	setTableId(tableId: string): this {
+		this._tableId = tableId;
+		this._data.id = tableId;
+
+		return this;
+	}
+
+	async upsertField(options: QBField | Partial<QBFieldJSON['data']>, autoSave: boolean = false): Promise<QBField> {
 		let field: QBField | undefined;
 
-		if(options instanceof QBField){
-			field = options;
-		}else
-		if(options){
-			if(options.id){
-				options.fid = options.id;
-
-				delete options.id;
+		if(QBField.IsQBField(options)){
+			if(options.get('recordid')){
+				field = this.getField(options.get('fid'));
+			}else
+			if(options.get('primaryKey')){
+				field = this.getField(options.get('fid'));
+			}else{
+				field = options;
 			}
-
-			options = merge({
-				dbid: this.getDBID(),
-				fid: -1
-			}, options);
-
+		}else
+		if(options !== undefined){
 			if(options.fid){
 				field = this.getField(options.fid);
-			}
-
-			if(field === undefined){
-				field = new QBField({
-					quickbase: options.quickbase || this._qb,
-					tableId: options.dbid || '',
-					fid: options.fid || -1
-				});
-			}
-
-			if(options){
-				getObjectKeys(options).forEach((attribute) => {
-					if(attribute !== 'quickbase'){
-						field!.set(attribute, (options as Indexable)[attribute]);
-					}
-				});
+			}else
+			if(options.id){
+				field = this.getField(options.id);
 			}
 		}
 
 		if(!field){
-			throw new Error('Unable to upsertField');
-		}
+			field = new QBField({
+				quickbase: this._qb,
+				tableId: this.getTableId(),
+				fid: -1
+			});
 
-		let i = this.getField(field.getFid(), true);
+			if(options && !QBField.IsQBField(options) && options.fid){
+				field.setFid(options.fid);
+			}
 
-		if(i !== undefined){
-			this._fields[i] = field;
-		}else{
 			this._fields.push(field);
 		}
 
-		if(autoSave === true){
+		if(options && !QBField.IsQBField(options)){
+			Object.entries(options).forEach(([ attribute, value ]) => {
+				field!.set(attribute, value);
+			});
+		}
+
+		if(autoSave){
 			await field.save();
 		}
 
@@ -905,15 +898,17 @@ export class QBTable {
 		return results;
 	}
 
-	async upsertRecord(options: QBRecord | QBRecordJSON['data'], autoSave: boolean = false): Promise<QBRecord> {
-		let record: QBRecord | undefined;
+	async upsertRecord(options: QBRecord<RecordData> | QBRecordJSON['data'], autoSave: boolean = false): Promise<QBRecord<RecordData>> {
+		let record: QBRecord<RecordData> | undefined;
 
-		if(options instanceof QBRecord){
+		if(QBRecord.IsQBRecord(options)){
 			if(options.get('recordid')){
 				record = this.getRecord(options.get('recordid'), 'recordid');
 			}else
 			if(options.get('primaryKey')){
 				record = this.getRecord(options.get('primaryKey'), 'primaryKey');
+			}else{
+				record = options;
 			}
 		}else
 		if(options !== undefined){
@@ -926,22 +921,21 @@ export class QBTable {
 		}
 
 		if(!record){
-			record = new QBRecord({
+			record = new QBRecord<RecordData>({
 				quickbase: this._qb,
-				tableId: this.getDBID(),
+				tableId: this.getTableId(),
 				fids: this.getFids()
 			});
 
 			this._records.push(record);
 		}
 
-		//@ts-ignore
-		record._fields = this.getFields();
+		record.setFields(this.getFields());
 
-		if(options && !(options instanceof QBRecord)){
+		if(options && !QBRecord.IsQBRecord(options)){
 			const addDefaults = !record.get('recordid');
 
-			getObjectKeys(options).forEach((fidName) => {
+			Object.entries(options).forEach(([ fidName, fidValue ]) => {
 				let value;
 
 				if(addDefaults){
@@ -952,11 +946,11 @@ export class QBTable {
 						value = field.get('properties')?.defaultValue;
 					}
 
-					if(options[fidName] !== undefined){
-						value = options[fidName];
+					if(fidValue !== undefined){
+						value = fidValue;
 					}
 				}else{
-					value = options[fidName];
+					value = fidValue;
 				}
 
 				record!.set(fidName, value);
@@ -970,7 +964,7 @@ export class QBTable {
 		return record;
 	}
 
-	async upsertRecords(records: (QBRecord | QBRecordJSON['data'])[], autoSave: boolean = false): Promise<QBRecord[]>{
+	async upsertRecords(records: (QBRecord<RecordData> | QBRecordJSON['data'])[], autoSave: boolean = false): Promise<QBRecord<RecordData>[]>{
 		const results = [];
 
 		for(let i = 0; i < records.length; ++i){
@@ -979,6 +973,16 @@ export class QBTable {
 
 		return results;
 	}
+
+	/**
+	 * Test if a variable is a `qb-record` object
+	 * 
+	 * @param obj A variable you'd like to test
+	 */
+	static IsQBTable(obj: any): obj is QBTable {
+		return ((obj || {}) as QBTable).CLASS_NAME === QBTable.CLASS_NAME;
+	}
+
 }
 
 /* Helpers */
@@ -986,68 +990,26 @@ const filterUnique = (val: any, i: number, arr: any[]) => {
 	return arr.indexOf(val) === i;
 };
 
-function getObjectKeys<O>(obj: O): (keyof O)[] {
-    return Object.keys(obj) as (keyof O)[];
-}
-
 /* Interfaces */
-interface Indexable {
-	[index: string]: any;
+export type QBTableOptions<RecordData extends QBRecordData = {}> = {
+	quickbase: QuickBaseOptions | QuickBase;
+	appId: string;
+	tableId: string;
+	fids: Partial<QBFids<RecordData>>;
 }
 
-export interface QBTableOptions {
-	quickbase?: QuickBaseOptions | QuickBase;
-	appId?: string;
-	dbid?: string;
-	fids?: QBTableFids;
-}
-
-export interface QBTableData {
-	id: string;
-	alias: string;
-	created: number;
-	updated: number;
-	name: string;
-	description: string;
-	singleRecordName: string;
-	pluralRecordName: string;
-	timeZone: string;
-	dateFormat: dateFormat;
-	keyFieldId: number;
-	nextFieldId: number;
-	nextRecordId: number;
-	defaultSortFieldId: number;
-	defaultSortOrder: string;
-}
-
-export interface QBTableSave {
-	individually?: boolean;
-	fidsToSave?: (string|number)[],
-	recordsToSave?: QBRecord[];
-}
-
-export interface QBTableRunQuery {
-	where?: string;
-	select?: number[];
-	sortBy?: QuickBaseSortBy[];
-	groupBy?: QuickBaseGroupBy[];
-	options?: QuickBaseQueryOptions;
+export type QBTableRunQueryOptions = {
+	fids?: Record<string, number>;
 	returnAll?: boolean;
-}
+} & Pick<QuickBaseRequestRunQuery, 'select' | 'where' | 'options' | 'sortBy' | 'groupBy' | 'requestOptions'>
 
-type QBTableRunQueryResponse = {
-	metadata: QuickBaseResponseRunQuery['metadata'];
-	records: QBRecord[];
+export type QBTableRunQueryResponse<RecordData extends QBRecordData = {}> = Pick<QuickBaseResponseRunQuery, 'metadata'> & {
+	records: QBRecord<RecordData>[];
 	fields: QBField[];
 };
 
-export type QBTableFids = {
-	[index in string | number]: number;
-}
-
 /* Export to Browser */
 if(IS_BROWSER){
-	// @ts-ignore
 	window.QBTable = QBTable;
 }
 

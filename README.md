@@ -86,7 +86,7 @@ var qbTable = new QBTable({
 });
 
 // Using a Temporary Token
-quickbase.getTempToken({
+quickbase.getTempTokenDBID({
     dbid: qbTable.getDBID()
 }).then(function(results){
     return qbTable.load();

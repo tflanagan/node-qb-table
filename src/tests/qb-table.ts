@@ -2,7 +2,7 @@
 
 /* Dependencies */
 import * as dotenv from 'dotenv';
-import { serial as test } from 'ava';
+import ava from 'ava';
 import { QuickBase } from 'quickbase';
 import { QBTable } from '../qb-table';
 import { QBField } from 'qb-field';
@@ -37,7 +37,7 @@ const qbTable = new QBTable({
 let newAppId: string;
 let newField: QBField;
 
-test.after.always('deleteApp()', async (t) => {
+ava.serial.after.always('deleteApp()', async (t) => {
 	if(!newAppId){
 		return t.pass();
 	}
@@ -47,10 +47,10 @@ test.after.always('deleteApp()', async (t) => {
 		name: 'Test Node Quick Base Application'
 	});
 
-	t.truthy(results.deletedAppId === newAppId);
+	return t.truthy(results.deletedAppId === newAppId);
 });
 
-test('QuickBase:createApp()', async (t) => {
+ava.serial('QuickBase:createApp()', async (t) => {
 	const results = await qb.createApp({
 		name: 'Test Node Quick Base Application',
 		assignToken: true
@@ -59,18 +59,18 @@ test('QuickBase:createApp()', async (t) => {
 	newAppId = results.id;
 	qbTable.setAppId(newAppId);
 
-	t.truthy(newAppId && results.name === 'Test Node Quick Base Application');
+	return t.truthy(newAppId && results.name === 'Test Node Quick Base Application');
 });
 	
-test('saveTable() - create', async (t) => {
+ava.serial('saveTable() - create', async (t) => {
 	qbTable.set('name', 'Test Table');
 
 	const results = await qbTable.saveTable();
 
-	t.truthy(qbTable.getDBID() === results.id);
+	return t.truthy(qbTable.getTableId() === results.id);
 });
 
-test('upsertField()', async (t) => {
+ava.serial('upsertField()', async (t) => {
 	const results = await qbTable.upsertField({
 		fieldType: 'text',
 		label: 'Test'
@@ -80,35 +80,35 @@ test('upsertField()', async (t) => {
 
 	qbTable.setFid('test', results.getFid());
 
-	t.truthy(results.getFid() > 0);
+	return t.truthy(results.getFid() > 0);
 });
 
-test('upsertRecord()', async (t) => {
+ava.serial('upsertRecord()', async (t) => {
 	const results = await qbTable.upsertRecord({
 		test: 'Test'
 	}, true);
 
-	t.truthy(results.get('recordid') > 0);
+	return t.truthy(results.get('recordid') > 0);
 });
 
-test('deleteRecords()', async (t) => {
+ava.serial('deleteRecords()', async (t) => {
 	const results = await qbTable.deleteRecords();
 
-	t.truthy(results.numberDeleted > 0);
+	return t.truthy(results.numberDeleted > 0);
 });
 
-test('QBField:delete()', async (t) => {
+ava.serial('QBField:delete()', async (t) => {
 	const oldFid = newField.getFid();
 
 	const results = await newField.delete();
 
-	t.truthy(results.deletedFieldIds[0] === oldFid);
+	return t.truthy(results.deletedFieldIds[0] === oldFid);
 });
 
-test('delete()', async (t) => {
-	const oldDbid = qbTable.getDBID();
+ava.serial('delete()', async (t) => {
+	const oldDbid = qbTable.getTableId();
 
 	const results = await qbTable.delete();
 
-	t.truthy(results.deletedTableId === oldDbid);
+	return t.truthy(results.deletedTableId === oldDbid);
 });
