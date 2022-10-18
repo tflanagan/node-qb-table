@@ -1,7 +1,7 @@
 {
   "name": "qb-table",
   "private": false,
-  "version": "5.0.2",
+  "version": "5.0.4",
   "description": "A lightweight abstraction layer for Quick Base",
   "keywords": [
     "QuickBase",
@@ -42,10 +42,10 @@
   },
   "dependencies": {
     "deepmerge": "^4.2.2",
-    "qb-field": "5.0.2",
-    "qb-record": "5.0.2",
-    "qb-report": "5.0.2",
-    "quickbase": "5.0.2",
+    "qb-field": "5.0.4",
+    "qb-record": "5.0.4",
+    "qb-report": "5.0.4",
+    "quickbase": "5.0.4",
     "rfc4122": "^1.0.6"
   },
   "devDependencies": {
