@@ -1008,6 +1008,6 @@ export type QBTableRunQueryResponse<RecordData extends QBRecordData = {}> = Pick
 
 /* Export to Browser */
 if(IS_BROWSER){
-	window.QBTable = QBTable;
+	window.QBTable = exports;
 }
 
