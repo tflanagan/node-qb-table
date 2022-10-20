@@ -236,8 +236,10 @@ export class QBTable<
 		return results;
 	}
 
-	get<P extends string>(attribute: P): P extends keyof QuickBaseResponseGetTable ? QuickBaseResponseGetTable[P] : (P extends keyof CustomGetSet ? CustomGetSet[P] : any);
 	get(attribute: 'id' | 'appId' | 'tableId'): string;
+	get<P extends keyof QuickBaseResponseGetTable>(attribute: P): QuickBaseResponseGetTable[P];
+	get<P extends keyof CustomGetSet>(attribute: P): CustomGetSet[P];
+	get<P extends string>(attribute: P): P extends keyof QuickBaseResponseGetTable ? QuickBaseResponseGetTable[P] : (P extends keyof CustomGetSet ? CustomGetSet[P] : any);
 	get(attribute: any): any {
 		if(attribute === 'id' || attribute === 'tableId'){
 			return this.getTableId();
@@ -412,10 +414,10 @@ export class QBTable<
 	}
 
 	async loadReport({ report, requestOptions }: QuickBaseRequest & { report: string | QBReport<RecordData> }): Promise<QBReport<RecordData>> {
-		if(!QBReport.IsQBReport<RecordData, CustomGetSet>(report)){
+		if(!QBReport.IsQBReport<RecordData>(report)){
 			report = this.getReport(report) || report;
 
-			if(!QBReport.IsQBReport<RecordData, CustomGetSet>(report)){
+			if(!QBReport.IsQBReport<RecordData>(report)){
 				report = new QBReport<RecordData>({
 					quickbase: this._qb,
 					tableId: this.getTableId(),
@@ -658,10 +660,10 @@ export class QBTable<
 	}
 
 	async runReport({ report, skip, top, requestOptions }: QBReportRunRequest & { report: string | QBReport<RecordData> }): Promise<QBReportRunResponse<RecordData>>{
-		if(!QBReport.IsQBReport<RecordData, CustomGetSet>(report)){
+		if(!QBReport.IsQBReport<RecordData>(report)){
 			report = this.getReport(report) || report;
 
-			if(!QBReport.IsQBReport<RecordData, CustomGetSet>(report)){
+			if(!QBReport.IsQBReport<RecordData>(report)){
 				report = new QBReport<RecordData>({
 					quickbase: this._qb,
 					tableId: this.getTableId(),
@@ -793,8 +795,10 @@ export class QBTable<
 		return this._data as QuickBaseResponseGetTable;
 	}
 
-	set<P extends string>(attribute: P, value: P extends keyof QuickBaseResponseGetTable ? QuickBaseResponseGetTable[P] : (P extends keyof CustomGetSet ? CustomGetSet[P] : any)): this;
 	set(attribute: 'id' | 'tableId' | 'appid', value: string): this;
+	set<P extends keyof QuickBaseResponseGetTable>(attribute: P, value: QuickBaseResponseGetTable[P]): this;
+	set<P extends keyof CustomGetSet>(attribute: P, value: CustomGetSet[P]): this;
+	set<P extends string>(attribute: P, value: P extends keyof QuickBaseResponseGetTable ? QuickBaseResponseGetTable[P] : (P extends keyof CustomGetSet ? CustomGetSet[P] : any)): this;
 	set(attribute: any, value: any): this {
 		if(attribute === 'id' || attribute === 'tableId'){
 			return this.setTableId(value);
