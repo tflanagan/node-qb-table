@@ -364,6 +364,13 @@ export class QBTable<
 		return this._tableId;
 	}
 
+	async getTempToken({ requestOptions }: QuickBaseRequest): Promise<void> {
+		this._qb.getTempTokenDBID({
+			dbid: this.getTableId(),
+			requestOptions
+		});
+	}
+
 	async loadField({ field, requestOptions }: QuickBaseRequest & { field: number | QBField }): Promise<QBField> {
 		if(!QBField.IsQBField(field)){
 			field = this.getField(field) || field;
