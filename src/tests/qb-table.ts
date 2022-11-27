@@ -30,7 +30,9 @@ const qb = new QuickBase({
 	proxy: false
 });
 
-const qbTable = new QBTable({
+const qbTable = new QBTable<{
+	test: string
+}>({
 	quickbase: qb
 });
 
@@ -85,10 +87,18 @@ ava.serial('upsertField()', async (t) => {
 
 ava.serial('upsertRecord()', async (t) => {
 	const results = await qbTable.upsertRecord({
-		test: 'Test'
+		test: 'asdf'
 	}, true);
 
 	return t.truthy(results.get('recordid') > 0);
+});
+
+ava.serial('QBTable.newRecord', async (t) => {
+	const results = QBTable.NewRecord(qbTable, {
+		test: 'some value'
+	});
+
+	return t.truthy(results.get('test') === 'some value');
 });
 
 ava.serial('deleteRecords()', async (t) => {

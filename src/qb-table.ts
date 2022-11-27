@@ -16,7 +16,7 @@ import {
 	QuickBaseResponseUpdateTable
 } from 'quickbase';
 import { QBField, QBFieldJSON, QBFieldAttributeSavable } from 'qb-field';
-import { QBFids, QBRecord, QBRecordData, QBRecordJSON } from 'qb-record';
+import { QBFids, QBRecord, QBRecordData } from 'qb-record';
 import { QBReport, QBReportRunResponse, QBReportRunRequest } from 'qb-report';
 
 /* Globals */
@@ -577,7 +577,7 @@ export class QBTable<
 		if(!fids){
 			fids = this.getFids();
 		}
-		
+
 		const names = Object.keys(fids);
 
 		const selectedFids = names.reduce((selectedFids, name) => {
@@ -718,7 +718,7 @@ export class QBTable<
 				});
 			}
 		}else{
-			const mergeFid = mergeFieldId || this.getFid('recordid');
+			const mergeFid = mergeFieldId || this.getFid('primaryKey');
 			const fids = this.getFids();
 			const names = Object.keys(fids);
 			const selectedNames = names.filter((name) => {
@@ -907,7 +907,7 @@ export class QBTable<
 		return results;
 	}
 
-	async upsertRecord(options: QBRecord<RecordData> | QBRecordJSON['data'], autoSave: boolean = false): Promise<QBRecord<RecordData>> {
+	async upsertRecord(options?: QBRecord<RecordData> | RecordData, autoSave: boolean = false): Promise<QBRecord<RecordData>> {
 		let record: QBRecord<RecordData> | undefined;
 
 		if(QBRecord.IsQBRecord<RecordData>(options)){
@@ -973,7 +973,7 @@ export class QBTable<
 		return record;
 	}
 
-	async upsertRecords(records: (QBRecord<RecordData> | QBRecordJSON['data'])[], autoSave: boolean = false): Promise<QBRecord<RecordData>[]>{
+	async upsertRecords(records: (QBRecord<RecordData> | RecordData)[], autoSave: boolean = false): Promise<QBRecord<RecordData>[]>{
 		const results = [];
 
 		for(let i = 0; i < records.length; ++i){
@@ -985,11 +985,19 @@ export class QBTable<
 
 	/**
 	 * Test if a variable is a `qb-record` object
-	 * 
+	 *
 	 * @param obj A variable you'd like to test
 	 */
 	static IsQBTable<T extends QBRecordData = QBRecordData, K extends Object = Record<any, any>>(obj: any): obj is QBTable<T, K> {
 		return ((obj || {}) as QBTable).CLASS_NAME === QBTable.CLASS_NAME;
+	}
+
+	static NewRecord<T extends QBRecordData, K extends Object>(table: QBTable<T, K>, data?: T){
+		return QBRecord.NewRecord<T>({
+			quickbase: table._qb,
+			tableId: table.getTableId(),
+			fids: table.getFids()
+		}, data);
 	}
 
 }
