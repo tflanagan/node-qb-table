@@ -718,18 +718,33 @@ export class QBTable<
 				});
 			}
 		}else{
-			const mergeFid = mergeFieldId || this.getFid('primaryKey');
+			const mergeField = mergeFieldId || this.getFid('primaryKey');
 			const fids = this.getFids();
 			const names = Object.keys(fids);
 			const selectedNames = names.filter((name) => {
 				const fid = fids[name];
+				const filtered = !fidsToSave || fidsToSave.indexOf(fid) !== -1 || fidsToSave.indexOf(name) !== -1 || fid === mergeField;
 
-				return !fidsToSave || fidsToSave.indexOf(fid) !== -1 || fidsToSave.indexOf(name) !== -1 || fid === mergeFid;
+				if(!filtered){
+					return false;
+				}
+
+				const field = this.getField(fid);
+
+				if(field && [
+					'lookup',
+					'summary',
+					'formula'
+				].indexOf(field.get('mode') || '') !== -1){
+					return false;
+				}
+
+				return true;
 			});
 
 			const results = await this._qb.upsert({
 				tableId: this.getTableId(),
-				mergeFieldId: mergeFid,
+				mergeFieldId: mergeField,
 				data: records.map((qbRecord) => {
 					return selectedNames.reduce((record, name) => {
 						const fid = fids[name];
