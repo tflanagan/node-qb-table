@@ -769,12 +769,20 @@ export class QBTable<
 				requestOptions
 			});
 
+			const error = typeof(results.metadata.lineErrors) !== 'undefined' ? results.metadata.lineErrors[0] : false;
+	
+			if(error){
+				throw new Error(error[0]);
+			}
+
 			records.forEach((record, i) => {
 				const data = results.data[i];
 
-				names.forEach((name) => {
-					record.set(name, data[fids[name]].value);
-				});
+				if(data){
+					names.forEach((name) => {
+						record.set(name, data[fids[name]].value);
+					});
+				}
 			});
 		}
 
