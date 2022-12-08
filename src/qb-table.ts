@@ -930,7 +930,7 @@ export class QBTable<
 		return results;
 	}
 
-	async upsertRecord(options?: QBRecord<RecordData> | RecordData, autoSave: boolean = false): Promise<QBRecord<RecordData>> {
+	async upsertRecord(options?: QBRecord<RecordData> | Partial<RecordData>, autoSave: boolean = false): Promise<QBRecord<RecordData>> {
 		let record: QBRecord<RecordData> | undefined;
 
 		if(QBRecord.IsQBRecord<RecordData>(options)){
@@ -996,7 +996,7 @@ export class QBTable<
 		return record;
 	}
 
-	async upsertRecords(records: (QBRecord<RecordData> | RecordData)[], autoSave: boolean = false): Promise<QBRecord<RecordData>[]>{
+	async upsertRecords(records: (QBRecord<RecordData> | Partial<RecordData>)[], autoSave: boolean = false): Promise<QBRecord<RecordData>[]>{
 		const results = [];
 
 		for(let i = 0; i < records.length; ++i){
@@ -1015,7 +1015,7 @@ export class QBTable<
 		return ((obj || {}) as QBTable).CLASS_NAME === QBTable.CLASS_NAME;
 	}
 
-	static NewRecord<T extends QBRecordData, K extends Object>(table: QBTable<T, K>, data?: T){
+	static NewRecord<T extends QBRecordData, K extends Object>(table: QBTable<T, K>, data?: Partial<T>){
 		return QBRecord.NewRecord<T>({
 			quickbase: table._qb,
 			tableId: table.getTableId(),

@@ -31,7 +31,8 @@ const qb = new QuickBase({
 });
 
 const qbTable = new QBTable<{
-	test: string
+	test: string;
+	test2: number;
 }>({
 	quickbase: qb
 });
