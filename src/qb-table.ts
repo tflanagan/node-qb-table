@@ -517,10 +517,13 @@ export class QBTable<
 		while(true){
 			const batchQuery: QuickBaseRequestRunQuery = {
 				...query,
-				sortBy: [{
-					fieldId: 3,
-					order: 'ASC'
-				}]
+				sortBy: [
+					...(query.sortBy || []),
+					{
+						fieldId: 3,
+						order: 'ASC'
+					}
+				]
 			};
 
 			if(!firstRun){
