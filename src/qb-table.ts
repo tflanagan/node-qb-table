@@ -16,7 +16,7 @@ import {
 	QuickBaseResponseUpdateTable
 } from 'quickbase';
 import { QBField, QBFieldJSON, QBFieldAttributeSavable } from 'qb-field';
-import { QBFids, QBRecord, QBRecordData } from 'qb-record';
+import { QBFids, QBRecord, QBRecordData, replaceUndefinedWithString } from 'qb-record';
 import { QBReport, QBReportRunResponse, QBReportRunRequest } from 'qb-report';
 
 /* Globals */
@@ -753,10 +753,8 @@ export class QBTable<
 						const fid = fids[name];
 
 						if(fid){
-							const value = qbRecord.get(name);
-
 							record[fid] = {
-								value: value === undefined ? '' : value
+								value: replaceUndefinedWithString(qbRecord.get(name))
 							};
 						}
 

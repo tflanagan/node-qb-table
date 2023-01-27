@@ -94,6 +94,70 @@ ava.serial('upsertRecord()', async (t) => {
 	return t.truthy(results.get('recordid') > 0);
 });
 
+ava.serial('saveRecords()', async (t) => {
+	// Test if the order we provide the records in matches the order returned by Quickbase
+	const record1 = await qbTable.upsertRecord({
+		test: 'Record 1'
+	}, true);
+	const record2 = await qbTable.upsertRecord({
+		test: 'Record 2'
+	}, true);
+	const record3 = await qbTable.upsertRecord({
+		test: 'Record 3'
+	});
+	const record4 = await qbTable.upsertRecord({
+		test: 'Record 4'
+	}, true);
+	const record5 = await qbTable.upsertRecord({
+		test: 'Record 5'
+	}, true);
+	const record6 = await qbTable.upsertRecord({
+		test: 'Record 6'
+	}, true);
+
+	const r1Rid = record1.get('recordid');
+	const r2Rid = record2.get('recordid');
+	const r4Rid = record4.get('recordid');
+	const r5Rid = record5.get('recordid');
+	const r6Rid = record6.get('recordid');
+
+	record2.set('test', 'Record 2 Changed');
+	record4.set('test', 'Record 4 Changed');
+
+	await qbTable.saveRecords({
+		recordsToSave: [
+			record5,
+			record6,
+			record4,
+			record1,
+			record2,
+			record3
+		]
+	});
+
+	t.log('record 1', record1.get('recordid'), r1Rid);
+	t.log('record 2', record2.get('recordid'), r2Rid);
+	t.log('record 3', record3.get('recordid'));
+	t.log('record 4', record4.get('recordid'), r4Rid);
+	t.log('record 5', record5.get('recordid'), r5Rid);
+	t.log('record 6', record6.get('recordid'), r6Rid);
+
+	// Currently fails, created records are returned first, then updated records, then unchanged records
+	return t.truthy(
+		record1.get('recordid') === r1Rid
+		&&
+		record2.get('recordid') === r2Rid
+		&&
+		record3.get('recordid') > 0
+		&&
+		record4.get('recordid') === r4Rid
+		&&
+		record5.get('recordid') === r5Rid
+		&&
+		record6.get('recordid') === r6Rid
+	);
+});
+
 ava.serial('QBTable.newRecord', async (t) => {
 	const results = QBTable.NewRecord(qbTable, {
 		test: 'some value'
