@@ -13,7 +13,8 @@ import {
 	QuickBaseRequest,
 	QuickBaseResponseGetTable,
 	QuickBaseResponseCreateTable,
-	QuickBaseResponseUpdateTable
+	QuickBaseResponseUpdateTable,
+	QuickBaseError
 } from 'quickbase';
 import { QBField, QBFieldJSON, QBFieldAttributeSavable } from 'qb-field';
 import { QBFids, QBRecord, QBRecordData, replaceUndefinedWithString } from 'qb-record';
@@ -744,11 +745,30 @@ export class QBTable<
 
 				return true;
 			});
+			const inputRecords = records.sort((a, b) => {
+				const aVal = a.get('recordid');
+				const bVal = b.get('recordid');
 
-			const results = await this._qb.upsert({
+				if(aVal === bVal){
+					return 0;
+				}else
+				if(aVal === undefined && bVal !== undefined){
+					return -1;
+				}else
+				if(aVal !== undefined && bVal === undefined){
+					return 1;
+				}
+
+				return aVal > bVal ? 1 : -1;
+			});
+
+			const {
+				headers,
+				data: results
+			} = await this._qb.upsert({
 				tableId: this.getTableId(),
 				mergeFieldId: mergeField,
-				data: records.map((qbRecord) => {
+				data: inputRecords.map((qbRecord) => {
 					return selectedNames.reduce((record, name) => {
 						const fid = fids[name];
 
@@ -767,24 +787,51 @@ export class QBTable<
 				fieldsToReturn: names.map((name) => {
 					return fids[name];
 				}).filter(filterUnique),
-				requestOptions
+				requestOptions,
+				returnAxios: true
 			});
 
-			const error = typeof(results.metadata.lineErrors) !== 'undefined' ? results.metadata.lineErrors[0] : false;
-	
-			if(error){
-				throw new Error(error[0]);
+			const errors: QuickBaseError[] = [];
+
+			for(let inputI = 0, dataI = 0; inputI < inputRecords.length; ++inputI){
+				const record = inputRecords[inputI];
+				const lineNum = inputI + 1;
+				const error = results.metadata.lineErrors && results.metadata.lineErrors[lineNum];
+
+				if(error){
+					errors.push(new QuickBaseError(207, `Error on Line ${lineNum}`, error.join('\n'), headers['qb-api-ray']));
+				}else{
+					const data = record.get('recordid') ? results.data.find((result) => {
+						return result['3'].value === record.get('recordid');
+					}) : results.data[dataI];
+
+					if(data){
+						names.forEach((name) => {
+							const fid = fids[name];
+
+							if(fid){
+								const field = data[fid];
+
+								if(field){
+									record.set(name, field.value);
+								}
+							}
+						});
+					}
+
+					++dataI;
+				}
 			}
 
-			records.forEach((record, i) => {
-				const data = results.data[i];
-
-				if(data){
-					names.forEach((name) => {
-						record.set(name, data[fids[name]].value);
-					});
+			if(errors.length > 0){
+				if(typeof(AggregateError) !== 'undefined'){
+					throw new AggregateError(errors, 'A partial success response was returned');
+				}else{
+					throw new QuickBaseError(207, 'A partial success response was returned', errors.map((err) => {
+						return `${err.message}: ${err.description}`;
+					}).join('\n'), headers['qb-api-ray']);
 				}
-			});
+			}
 		}
 
 		return records;

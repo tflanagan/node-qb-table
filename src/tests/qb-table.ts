@@ -64,7 +64,7 @@ ava.serial('QuickBase:createApp()', async (t) => {
 
 	return t.truthy(newAppId && results.name === 'Test Node Quick Base Application');
 });
-	
+
 ava.serial('saveTable() - create', async (t) => {
 	qbTable.set('name', 'Test Table');
 
@@ -114,6 +114,9 @@ ava.serial('saveRecords()', async (t) => {
 	const record6 = await qbTable.upsertRecord({
 		test: 'Record 6'
 	}, true);
+	const record7 = await qbTable.upsertRecord({
+		test: 'Record 7'
+	});
 
 	const r1Rid = record1.get('recordid');
 	const r2Rid = record2.get('recordid');
@@ -131,7 +134,8 @@ ava.serial('saveRecords()', async (t) => {
 			record4,
 			record1,
 			record2,
-			record3
+			record3,
+			record7
 		]
 	});
 
@@ -141,20 +145,22 @@ ava.serial('saveRecords()', async (t) => {
 	t.log('record 4', record4.get('recordid'), r4Rid);
 	t.log('record 5', record5.get('recordid'), r5Rid);
 	t.log('record 6', record6.get('recordid'), r6Rid);
+	t.log('record 7', record7.get('recordid'));
 
-	// Currently fails, created records are returned first, then updated records, then unchanged records
 	return t.truthy(
 		record1.get('recordid') === r1Rid
 		&&
 		record2.get('recordid') === r2Rid
 		&&
-		record3.get('recordid') > 0
+		record3.get('recordid') > r6Rid && record3.get('recordid') < record7.get('recordid')
 		&&
 		record4.get('recordid') === r4Rid
 		&&
 		record5.get('recordid') === r5Rid
 		&&
 		record6.get('recordid') === r6Rid
+		&&
+		record7.get('recordid') > r6Rid && record7.get('recordid') > record3.get('recordid')
 	);
 });
 
