@@ -87,20 +87,23 @@ export class QBTable<
 			...classOptions
 		} = options || {};
 
-		if(QuickBase.IsQuickBase(quickbase)){
-			this._qb = quickbase;
-		}else{
-			this._qb = new QuickBase(merge.all([
-				QBTable.defaults.quickbase,
-				quickbase || {}
-			]));
-		}
-
 		const settings = merge(QBTable.defaults, classOptions);
 
 		this.setAppId(settings.appId)
 			.setTableId(settings.tableId)
 			.setFids(settings.fids as Record<any, number>);
+
+		if(QuickBase.IsQuickBase(quickbase)){
+			this._qb = quickbase;
+		}else{
+			this._qb = new QuickBase(merge.all([
+				QBTable.defaults.quickbase,
+				quickbase || {},
+				{
+					tempTokenDbid: this.getTableId()
+				}
+			]));
+		}
 
 		return this;
 	}
@@ -1069,6 +1072,25 @@ export class QBTable<
 			tableId: table.getTableId(),
 			fids: table.getFids()
 		}, data);
+	}
+
+	static ToCSV<T extends QBRecordData, K extends Object>(table: QBTable<T, K>, columns: (keyof T)[], data?: QBRecord<T>[]): string {
+		return (data || table.getRecords()).map((record) => {
+			return columns.map((field) => {
+				const value = record.get(field);
+
+				switch(typeof(value)){
+					case 'number':
+						return value;
+					case 'boolean':
+						return `"${value ? 'yes' : 'no'}"`;
+					case 'object':
+						return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+					default:
+						return `"${value.replace(/"/g, '""')}"`;
+				}
+			}).join(',');
+		}).join('\n');
 	}
 
 }
