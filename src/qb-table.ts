@@ -660,7 +660,7 @@ export class QBTable<
 			selectedNames.forEach((name) => {
 				const fid = selectedFids[name];
 
-				qbRecord.set('' + (name || fid), record[fid].value);
+				qbRecord.set('' + (name || fid), record[fid] ? record[fid].value : undefined);
 			});
 
 			return qbRecord;
